@@ -1,22 +1,31 @@
 use std::collections::HashMap;
+use std::io::Error;
 
 // TODO duplicates
 type Brain = HashMap<String, String>;
 
-fn create_factoid(mut brain: Brain, k: String, v: String) -> Brain {
-    brain.insert(k, v);
-    brain
+pub trait FactoidKnowledge {
+    fn create_factoid(&mut self, String, String) -> Result<(), Error>;
+    fn get_factoid<'a>(&'a self, &String) -> Option<&'a String>;
+    fn literal_factoid(&self, &String) -> String;
 }
 
-fn get_factoid<'a>(brain: &'a Brain, k: &String) -> Option<&'a String> {
-    brain.get(k)
-}
+impl FactoidKnowledge for Brain {
+    fn create_factoid(&mut self, k: String, v: String) -> Result<(), Error> {
+        self.insert(k, v);
+        Ok(())
+    }
 
-// TODO one can not know things in many ways!
-fn literal_factoid(brain: &Brain, k: &String) -> String {
-    match brain.get(k) {
-        Some(v) => v.clone(),
-        None => "I don't know anything about that".to_string(),
+    fn get_factoid<'a>(&'a self, k: &String) -> Option<&'a String> {
+        self.get(k)
+    }
+
+    // TODO one can not know things in many ways!
+    fn literal_factoid(&self, k: &String) -> String {
+        match self.get(k) {
+            Some(v) => v.clone(),
+            None => "I don't know anything about that".to_string(),
+        }
     }
 }
 
@@ -35,7 +44,7 @@ mod tests {
     #[test]
     fn can_create_factoid() {
         let mut brain = Brain::new();
-        brain = create_factoid(brain, "foo".to_string(), "bar".to_string());
+        brain.create_factoid("foo".to_string(), "bar".to_string());
         assert_eq!(brain.get("foo").unwrap(), "bar");
     }
 
@@ -45,7 +54,7 @@ mod tests {
         brain.insert("foo".to_string(), "bar".to_string());
         assert_eq!(
             "bar".to_string(),
-            *get_factoid(&brain, &"foo".to_string()).unwrap()
+            *brain.get_factoid(&"foo".to_string()).unwrap()
         );
     }
 
@@ -53,7 +62,7 @@ mod tests {
     fn no_nonfactoid_retrieval() {
         let mut brain = Brain::new();
         brain.insert("foo".to_string(), "bar".to_string());
-        assert!(get_factoid(&brain, &"bar".to_string()).is_none());
+        assert!(brain.get_factoid(&"bar".to_string()).is_none());
     }
 
     #[test]
@@ -62,12 +71,12 @@ mod tests {
         brain.insert("foo".to_string(), "bar".to_string());
         assert_eq!(
             "bar".to_string(),
-            literal_factoid(&brain, &"foo".to_string())
+            brain.literal_factoid(&"foo".to_string())
         );
 
         assert_eq!(
             "I don't know anything about that".to_string(),
-            literal_factoid(&brain, &"zip".to_string())
+            brain.literal_factoid(&"zip".to_string())
         );
     }
 
