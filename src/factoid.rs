@@ -2,17 +2,26 @@ use std::collections::HashMap;
 use std::io::Error;
 
 // TODO duplicates
-type Brain = HashMap<String, String>;
+pub type Brain = HashMap<String, String>;
 
 pub trait FactoidKnowledge {
-    fn create_factoid(&mut self, String, String) -> Result<(), Error>;
+    fn create_factoid(&mut self, &Vec<String>, String) -> Result<(), Error>;
     fn get_factoid<'a>(&'a self, &String) -> Option<&'a String>;
     fn literal_factoid(&self, &String) -> String;
 }
 
 impl FactoidKnowledge for Brain {
-    fn create_factoid(&mut self, k: String, v: String) -> Result<(), Error> {
-        self.insert(k, v);
+    fn create_factoid(&mut self, verbs: &Vec<String>, s: String) -> Result<(), Error> {
+        let iter = s.split_whitespace();
+        let index = iter
+            .clone()
+            .position(|pivot| verbs.contains(&pivot.to_string()))
+            .unwrap();
+
+        let tmp: Vec<&str> = iter.collect();
+        let (k, v) = tmp.split_at(index);
+
+        self.insert(k.join("").to_owned(), v[1..].join("").to_owned());
         Ok(())
     }
 
@@ -30,7 +39,7 @@ impl FactoidKnowledge for Brain {
 }
 
 // TODO needs to split on whitespass + punctuassion
-fn creates_factoid(name: &String, verbs: &Vec<String>, s: &String) -> bool {
+pub fn creates_factoid(name: &String, verbs: &Vec<String>, s: &String) -> bool {
     if !s.starts_with((name.to_owned() + ":").as_str()) {
         return false;
     }
@@ -44,7 +53,8 @@ mod tests {
     #[test]
     fn can_create_factoid() {
         let mut brain = Brain::new();
-        brain.create_factoid("foo".to_string(), "bar".to_string());
+        let verbs = vec!["is".to_owned()];
+        brain.create_factoid(&verbs, "foo is bar".to_string());
         assert_eq!(brain.get("foo").unwrap(), "bar");
     }
 
@@ -69,10 +79,7 @@ mod tests {
     fn can_literal_factoid() {
         let mut brain = Brain::new();
         brain.insert("foo".to_string(), "bar".to_string());
-        assert_eq!(
-            "bar".to_string(),
-            brain.literal_factoid(&"foo".to_string())
-        );
+        assert_eq!("bar".to_string(), brain.literal_factoid(&"foo".to_string()));
 
         assert_eq!(
             "I don't know anything about that".to_string(),
@@ -82,22 +89,19 @@ mod tests {
 
     #[test]
     fn ids_factoid_creation() {
-        let mut verbs = Vec::new();
-        verbs.push("foo".to_string());
+        let verbs = vec!["is".to_owned()];
         assert!(creates_factoid(
             &"bot_name".to_string(),
             &verbs,
-            &"bot_name: a foo b".to_string()
+            &"bot_name: a is b".to_string()
         ));
     }
 
     #[test]
     fn ids_non_factoid_creation() {
-        let mut verbs = Vec::new();
-        verbs.push("foo".to_string());
-
+        let verbs = vec!["is".to_owned()];
         assert!(
-            !creates_factoid(&"bot_name".to_string(), &verbs, &"a foo b".to_string()),
+            !creates_factoid(&"bot_name".to_string(), &verbs, &"a is b".to_string()),
             "I wasn't addressed, this shouldn't create a factoid"
         );
 
@@ -105,7 +109,7 @@ mod tests {
             !creates_factoid(
                 &"bot_name".to_string(),
                 &verbs,
-                &"bot_name: a forb b".to_string()
+                &"bot_name: a foo b".to_string()
             ),
             "None of my verbs were present, this shouldn't create a factoid"
         );
