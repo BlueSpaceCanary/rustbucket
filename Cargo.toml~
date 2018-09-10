@@ -1,0 +1,6 @@
+[package]
+name = "rustbucket"
+version = "0.1.0"
+authors = ["Philip B Davis <phs.philip@gmail.com>"]
+
+[dependencies]

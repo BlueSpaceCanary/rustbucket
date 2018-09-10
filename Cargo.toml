@@ -1,0 +1,8 @@
+[package]
+name = "rustbucket"
+version = "0.0.1"
+authors = ["BlueSpaceCanary"]
+
+[dependencies]
+irc = "0.13"
+
