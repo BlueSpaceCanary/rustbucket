@@ -20,7 +20,7 @@ fn main() {
     };
 
     let verbs = vec!["is".to_owned()];
-    let brain = Arc::new(Mutex::new(Brain::new(
+    let cns = Arc::new(Mutex::new(Brain::new(
         config.nickname.clone().unwrap(),
         verbs,
     )));
@@ -30,7 +30,7 @@ fn main() {
     client.identify().unwrap();
 
     reactor.register_client_with_handler(client, move |client, message| {
-        let cns = Arc::clone(&brain);
+        let cns = Arc::clone(&cns);
         let mut brain = cns.lock().unwrap();
 
         connection_handler(config.clone(), client, message, &mut *brain);
