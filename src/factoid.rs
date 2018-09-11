@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::io::Error;
 
 // TODO duplicates
+
 pub type Brain = HashMap<String, String>;
 
 pub trait FactoidKnowledge {
@@ -10,9 +11,15 @@ pub trait FactoidKnowledge {
     fn literal_factoid(&self, &String) -> String;
 }
 
+
+// TODO strip whitespass + punctuassion
 impl FactoidKnowledge for Brain {
     fn create_factoid(&mut self, verbs: &Vec<String>, s: String) -> Result<(), Error> {
-        let iter = s.split_whitespace();
+        // Drop name:
+        let name_index = s.find(":").unwrap();
+        let cleaned_string = s.clone().split_off(name_index+1);
+        
+        let iter = cleaned_string.split_whitespace();
         let index = iter
             .clone()
             .position(|pivot| verbs.contains(&pivot.to_string()))
@@ -21,7 +28,7 @@ impl FactoidKnowledge for Brain {
         let tmp: Vec<&str> = iter.collect();
         let (k, v) = tmp.split_at(index);
 
-        self.insert(k.join("").to_owned(), v[1..].join("").to_owned());
+        self.insert(k.join(" ").to_owned(), v[1..].join(" ").to_owned());
         Ok(())
     }
 
@@ -54,7 +61,7 @@ mod tests {
     fn can_create_factoid() {
         let mut brain = Brain::new();
         let verbs = vec!["is".to_owned()];
-        brain.create_factoid(&verbs, "foo is bar".to_string());
+        brain.create_factoid(&verbs, "sidra: foo is bar".to_string());
         assert_eq!(brain.get("foo").unwrap(), "bar");
     }
 
