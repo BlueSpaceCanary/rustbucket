@@ -1,4 +1,6 @@
 extern crate irc;
+extern crate rand;
+
 mod factoid;
 
 use factoid::Brain;
@@ -16,7 +18,12 @@ fn main() {
         port: Some(6697),
         ..Config::default()
     };
-    let brain = Arc::new(Mutex::new(Brain::new()));
+
+    let verbs = vec!["is".to_owned()];
+    let brain = Arc::new(Mutex::new(Brain::new(
+        config.nickname.clone().unwrap(),
+        verbs,
+    )));
 
     let mut reactor = IrcReactor::new().unwrap();
     let client = reactor.prepare_client_and_connect(&config).unwrap();
@@ -46,7 +53,7 @@ fn connection_handler(
     if let Command::PRIVMSG(ref target, ref msg) = message.command {
         println!("{}", msg);
         if factoid::creates_factoid(&name, &verbs, &msg) {
-            match brain.create_factoid(&verbs, msg.to_string()) {
+            match brain.create_factoid(msg.to_string()) {
                 Ok(_) => println!("Added fact!"),
                 Err(e) => panic!("AHHHH"),
             }

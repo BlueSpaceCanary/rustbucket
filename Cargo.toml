@@ -5,4 +5,4 @@ authors = ["BlueSpaceCanary"]
 
 [dependencies]
 irc = "0.13"
-
+rand = "0.5"
