@@ -150,7 +150,7 @@ mod tests {
     }
 
     #[test]
-    fn can_literal_factoid() {
+    fn can_literal_factoids() {
         let verbs = vec!["is".to_owned()];
         let mut brain = Brain::new("sidra".to_owned(), verbs);
         brain
@@ -161,6 +161,12 @@ mod tests {
         assert_eq!(
             "I don't know anything about that".to_string(),
             brain.literal_factoid(&"zip".to_string())
+        );
+
+        brain.create_factoid("sidra: foo is zip".to_string());
+        assert_eq!(
+            "bar, zip".to_string(),
+            brain.literal_factoid(&"foo".to_string())
         );
     }
 
