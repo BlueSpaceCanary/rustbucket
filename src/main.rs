@@ -19,10 +19,9 @@ fn main() {
         ..Config::default()
     };
 
-    let verbs = vec!["is".to_owned()];
+
     let cns = Arc::new(Mutex::new(Brain::new(
         config.nickname.clone().unwrap(),
-        verbs,
     )));
 
     let mut reactor = IrcReactor::new().unwrap();
@@ -47,7 +46,6 @@ fn connection_handler(
     brain: &mut Brain,
 ) {
     let name = config.nickname.clone().unwrap();
-    let verbs = vec!["is".to_string(), "are".to_string()];
 
     // And here we can do whatever we want with the messages.
     if let Command::PRIVMSG(ref target, ref msg) = message.command {
@@ -56,18 +54,22 @@ fn connection_handler(
             client
                 .send_privmsg(message.response_target().unwrap_or(target), msg)
                 .unwrap();
+        } else if factoid::creates_factoid(&name, &msg) {
+            match brain.create_factoid(msg.to_string()) {
+                Ok(_) => {
+                    println!("Added fact!");
+                    client
+                        .send_privmsg(message.response_target().unwrap_or(target), &"OK!")
+                        .unwrap();
+                }
+                Err(e) => panic!("AHHHH"),
+            }
+        
+        } else if let Some(v) = brain.get_factoid(&msg) {
+            println!("hi!");
+            client
+                .send_privmsg(message.response_target().unwrap_or(target), &v)
+                .unwrap();
         }
     }
-    //     if factoid::creates_factoid(&name, &verbs, &msg) {
-    //         match brain.create_factoid(msg.to_string()) {
-    //             Ok(_) => println!("Added fact!"),
-    //             Err(e) => panic!("AHHHH"),
-    //         }
-    //     } else if let Some(v) = brain.get_factoid(&msg) {
-    //         println!("hi!");
-    //         client
-    //             .send_privmsg(message.response_target().unwrap_or(target), &v)
-    //             .unwrap();
-    //     }
-    // }
 }

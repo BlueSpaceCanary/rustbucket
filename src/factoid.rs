@@ -9,16 +9,14 @@ use std::io::Error;
 pub struct Brain {
     name: String,
     hippocampus: HashMap<String, Vec<String>>,
-    verbs: Vec<String>,
     rng: XorShiftRng,
 }
 
 impl Brain {
-    pub fn new(name: String, verbs: Vec<String>) -> Brain {
+    pub fn new(name: String) -> Brain {
         Brain {
             hippocampus: HashMap::new(),
             name: name,
-            verbs: verbs,
             rng: XorShiftRng::from_entropy(),
         }
     }
@@ -44,7 +42,7 @@ impl FactoidKnowledge for Brain {
         let iter = cleaned_string.split_whitespace();
         let index = iter
             .clone()
-            .position(|pivot| self.verbs.contains(&pivot.to_string()))
+            .position(|pivot| pivot == "is" || pivot == "are" )
             .unwrap();
 
         let tmp: Vec<&str> = iter.collect();
@@ -58,7 +56,7 @@ impl FactoidKnowledge for Brain {
             .or_insert(vec![])
             .push(full_val);
 
-        Ok(())
+    Ok(())
     }
 
     fn get_factoid<'a>(&'a mut self, k: &String) -> Option<&'a String> {
@@ -85,16 +83,16 @@ pub fn is_awoo(s: &String) -> bool {
     }
 
     let rest = &lower_s[4..];
-    return !rest.chars().any(|x| x != 'o');
+    !rest.chars().any(|x| x != 'o')
 }
 
 // TODO needs to split on whitespass + punctuassion
-pub fn creates_factoid(name: &String, verbs: &Vec<String>, s: &String) -> bool {
+pub fn creates_factoid(name: &String, s: &String) -> bool {
     if !s.starts_with((name.to_owned() + ":").as_str()) {
         return false;
     }
 
-    verbs.iter().any(|x| s.contains(x.as_str()))
+    s.contains(" is ") || s.contains(" are ")
 }
 
 #[cfg(test)]
@@ -102,8 +100,7 @@ mod tests {
     use super::*;
     #[test]
     fn can_create_factoid() {
-        let verbs = vec!["is".to_owned()];
-        let mut brain = Brain::new("sidra".to_owned(), verbs);
+        let mut brain = Brain::new("sidra".to_owned());
         brain.create_factoid("sidra: foo is bar".to_string());
         assert_eq!(
             brain.hippocampus.get("foo").unwrap(),
@@ -113,8 +110,7 @@ mod tests {
 
     #[test]
     fn can_retrieve_factoid() {
-        let verbs = vec!["is".to_owned()];
-        let mut brain = Brain::new("sidra".to_owned(), verbs);
+        let mut brain = Brain::new("sidra".to_owned());
         brain
             .hippocampus
             .insert("foo".to_string(), vec!["bar".to_string()]);
@@ -126,8 +122,7 @@ mod tests {
 
     #[test]
     fn can_set_and_retrieve_multi_factoid() {
-        let verbs = vec!["is".to_owned()];
-        let mut brain = Brain::new("sidra".to_owned(), verbs);
+        let mut brain = Brain::new("sidra".to_owned());
 
         // Set arbitrarily to make the test work
         brain.set_rng_seed([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
@@ -151,8 +146,7 @@ mod tests {
 
     #[test]
     fn no_nonfactoid_retrieval() {
-        let verbs = vec!["is".to_owned()];
-        let mut brain = Brain::new("sidra".to_owned(), verbs);
+        let mut brain = Brain::new("sidra".to_owned());
         brain
             .hippocampus
             .insert("foo".to_string(), vec!["bar".to_string()]);
@@ -161,8 +155,7 @@ mod tests {
 
     #[test]
     fn can_literal_factoids() {
-        let verbs = vec!["is".to_owned()];
-        let mut brain = Brain::new("sidra".to_owned(), verbs);
+        let mut brain = Brain::new("sidra".to_owned());
         brain
             .hippocampus
             .insert("foo".to_string(), vec!["bar".to_string()]);
@@ -182,26 +175,22 @@ mod tests {
 
     #[test]
     fn ids_factoid_creation() {
-        let verbs = vec!["is".to_owned()];
         assert!(creates_factoid(
             &"bot_name".to_string(),
-            &verbs,
             &"bot_name: a is b".to_string()
         ));
     }
 
     #[test]
     fn ids_non_factoid_creation() {
-        let verbs = vec!["is".to_owned()];
         assert!(
-            !creates_factoid(&"bot_name".to_string(), &verbs, &"a is b".to_string()),
+            !creates_factoid(&"bot_name".to_string(), &"a is b".to_string()),
             "I wasn't addressed, this shouldn't create a factoid"
         );
 
         assert!(
             !creates_factoid(
                 &"bot_name".to_string(),
-                &verbs,
                 &"bot_name: a foo b".to_string()
             ),
             "None of my verbs were present, this shouldn't create a factoid"
