@@ -78,6 +78,16 @@ impl FactoidKnowledge for Brain {
     }
 }
 
+pub fn is_awoo(s: &String) -> bool {
+    let lower_s = s.to_ascii_lowercase();
+    if !lower_s.starts_with("awoo") {
+        return false;
+    }
+
+    let rest = &lower_s[4..];
+    return !rest.chars().any(|x| x != 'o');
+}
+
 // TODO needs to split on whitespass + punctuassion
 pub fn creates_factoid(name: &String, verbs: &Vec<String>, s: &String) -> bool {
     if !s.starts_with((name.to_owned() + ":").as_str()) {
