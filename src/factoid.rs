@@ -87,7 +87,7 @@ fn is_extension(base: &String, candidate: &String) -> bool {
     let mut bs = my_base.chars().peekable();
     let mut cs = my_candidate.chars().peekable();
 
-    let mut b = bs.next().unwrap(); // If you base in an empty base it's
+    let mut b = bs.next().unwrap(); // If you pass in an empty base it's
                                     // your problem >:(
     let mut c = match cs.next() {
         Some(chr) => chr,
