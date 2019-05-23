@@ -7,7 +7,7 @@ jobs:
       # your own using the Dockerfile provided below
       # and replace here. I put my own image here for
       # the example.
-      - image: abronan/rust-circleci:latest
+      - image: circleci/rust:latest
 
     environment:
       TZ: "/usr/share/zoneinfo/America/Los_Angeles"
@@ -20,7 +20,7 @@ jobs:
           name: Check formatting
           command: |
             rustfmt --version
-            cargo fmt -- --write-mode=diff
+            cargo fmt -- --check
       - run:
           name: Nightly Build
           command: |
