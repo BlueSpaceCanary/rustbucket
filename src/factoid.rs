@@ -25,9 +25,9 @@ impl Brain {
 }
 
 pub trait FactoidKnowledge {
-    fn create_factoid(&mut self, String) -> Result<(), Error>;
-    fn get_factoid<'a>(&'a mut self, &String) -> Option<&'a String>;
-    fn literal_factoid(&self, &String) -> String;
+    fn create_factoid(&mut self, _: String) -> Result<(), Error>;
+    fn get_factoid<'a>(&'a mut self, _: &String) -> Option<&'a String>;
+    fn literal_factoid(&self, _: &String) -> String;
 }
 
 // TODO strip whitespass + punctuassion
@@ -89,38 +89,17 @@ fn is_extension(base: &String, candidate: &String) -> bool {
     let mut cs = my_candidate.chars();
 
     loop {
-        let mut b = match bs.next() {
+        let _b = match bs.next() {
             Some(chr) => chr,
             None    => break 
         };
 
-        let mut c = match cs.next() {
+        let _c = match cs.next() {
             Some(chr) => chr,
             None    => return false
         };
 
 
-        // basically, we fast forward along so long as both maintain a
-        // run of the same duplicated char
-        while b == c {
-            let peek = match bs.peek() {
-                Some(chr)  => chr,
-                None => break
-            };
-            
-            if b != *peek {
-                break;
-            }
-            b = match bs.next() {
-                Some(chr) => chr,
-                None => break
-            };
-
-            c = match cs.next() {
-                Some(chr) => chr,
-                None    => return false
-            };
-        }
     }
 
     return cs.next() == None;
