@@ -235,4 +235,9 @@ mod tests {
             "None of my verbs were present, this shouldn't create a factoid"
         );
     }
+
+    #[test]
+    fn awo_is_not_awoo() {
+        assert!(!is_awoo("awo"));
+    }
 }
