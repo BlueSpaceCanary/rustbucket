@@ -42,7 +42,7 @@ impl FactoidKnowledge for Brain {
         let iter = cleaned_string.split_whitespace();
         let index = iter
             .clone()
-            .position(|pivot| pivot == "is" || pivot == "are" )
+            .position(|pivot| pivot == "is" || pivot == "are")
             .unwrap();
 
         let tmp: Vec<&str> = iter.collect();
@@ -56,7 +56,7 @@ impl FactoidKnowledge for Brain {
             .or_insert(vec![])
             .push(full_val);
 
-    Ok(())
+        Ok(())
     }
 
     fn get_factoid<'a>(&'a mut self, k: &String) -> Option<&'a String> {
@@ -189,10 +189,7 @@ mod tests {
         );
 
         assert!(
-            !creates_factoid(
-                &"bot_name".to_string(),
-                &"bot_name: a foo b".to_string()
-            ),
+            !creates_factoid(&"bot_name".to_string(), &"bot_name: a foo b".to_string()),
             "None of my verbs were present, this shouldn't create a factoid"
         );
     }

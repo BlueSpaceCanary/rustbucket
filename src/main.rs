@@ -19,10 +19,7 @@ fn main() {
         ..Config::default()
     };
 
-
-    let cns = Arc::new(Mutex::new(Brain::new(
-        config.nickname.clone().unwrap(),
-    )));
+    let cns = Arc::new(Mutex::new(Brain::new(config.nickname.clone().unwrap())));
 
     let mut reactor = IrcReactor::new().unwrap();
     let client = reactor.prepare_client_and_connect(&config).unwrap();
@@ -64,7 +61,6 @@ fn connection_handler(
                 }
                 Err(e) => panic!("AHHHH"),
             }
-        
         } else if let Some(v) = brain.get_factoid(&msg) {
             println!("hi!");
             client
