@@ -77,22 +77,27 @@ impl FactoidKnowledge for Brain {
 }
 
 // e.g. awoo -> awooooo or meow -> meoooow
-fn is_extension(base: &mut Iterator<Item=char>, mut candidate: &mut Iterator<Item=char>)  -> bool {
-    let h = match base.next() {
-        Some(chr) => chr,
-        None => {
-            // Base is out of characters, is this good or bad?
-            return candidate.next() == None;
-        }
-    };
+fn is_extension(base: &'static str, candidate: &str) -> bool {
+    fn inner_ext_check(base: &mut Iterator<Item=char>, mut candidate: &mut Iterator<Item=char>)  -> bool {
+        let h = match base.next() {
+            Some(chr) => chr,
+            None => {
+                // Base is out of characters, is this good or bad?
+                return candidate.next() == None;
+            }
+        };
 
-    let mut candidate_remainder = candidate.skip_while(|x| x == &h);
-    is_extension(base, &mut candidate_remainder)
+        let mut candidate_remainder = candidate.skip_while(|x| {
+            x.to_lowercase().zip(h.to_lowercase()).all(|(l, r)| l == r)
+        });
+        inner_ext_check(base, &mut candidate_remainder)
+    }
+
+    inner_ext_check(&mut base.chars(), &mut candidate.chars())
 }
 
 pub fn is_awoo(s: &str) -> bool {
-    let lower_s = s.to_ascii_lowercase();
-    is_extension(&mut "awoo".chars(), &mut lower_s.chars())
+    is_extension("awoo", s)
 }
 
 #[test]
@@ -100,6 +105,7 @@ pub fn test_awoos() {
     assert!(is_awoo("awoo"));
     assert!(is_awoo("aaaawoo"));
     assert!(is_awoo("aaawwwwoooo"));
+    assert!(is_awoo("aaAaAawwWwwwwoOOOooo"));
     // TODO: this didn't work before, still doesn't,
     // assert!(!is_awoo("awo"));
     assert!(!is_awoo("awo0"));
@@ -107,10 +113,9 @@ pub fn test_awoos() {
 
 
 pub fn is_meow(s: &str) -> bool {
-    let lower_s = s.to_ascii_lowercase();
-    is_extension(&mut "meow".chars(), &mut lower_s.chars())
-        || is_extension(&mut "miao".chars(), &mut lower_s.chars())
-        || is_extension(&mut "miaow".chars(), &mut lower_s.chars())
+    is_extension("meow", s)
+        || is_extension("miao", s)
+        || is_extension("miaow", s)
 }
 
 #[test]
