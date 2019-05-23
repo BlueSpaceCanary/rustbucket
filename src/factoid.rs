@@ -83,11 +83,13 @@ fn is_extension(base: &String, candidate: &String)  -> bool {
     } else if base.len() == 0  && candidate.len() == 0 {
         return true;
     }
-    
+
     // blame ixi
-    let h = base.chars().next().unwrap(); // Safe, we checked it wasn't empty above
+    let mut bc = base.chars();
+
+    let h = bc.next().unwrap(); // Safe, we checked it wasn't empty above
     let c = candidate.chars().skip_while(|x| x == &h);
-    is_extension(&base.chars().skip(1).into_iter().collect::<String>(), &c.collect::<String>())
+    is_extension(&bc.skip(1).into_iter().collect::<String>(), &c.collect::<String>())
 }
 
 pub fn is_awoo(s: &String) -> bool {
