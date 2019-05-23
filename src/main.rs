@@ -3,8 +3,8 @@ extern crate rand;
 
 mod factoid;
 
-use factoid::Brain;
-use factoid::FactoidKnowledge;
+use crate::factoid::Brain;
+use crate::factoid::FactoidKnowledge;
 use irc::client::prelude::*;
 use std::sync::{Arc, Mutex};
 
@@ -63,7 +63,7 @@ fn connection_handler(
                         .send_privmsg(message.response_target().unwrap_or(target), &"OK!")
                         .unwrap();
                 }
-                Err(e) => panic!("AHHHH"),
+                Err(_e) => panic!("AHHHH"),
             }
         } else if let Some(v) = brain.get_factoid(&msg) {
             println!("hi!");
