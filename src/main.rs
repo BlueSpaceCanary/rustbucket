@@ -51,6 +51,10 @@ fn connection_handler(
             client
                 .send_privmsg(message.response_target().unwrap_or(target), msg)
                 .unwrap();
+        } else if factoid::is_meow(msg) {
+            client
+                .send_privmsg(message.response_target().unwrap_or(target), msg)
+                .unwrap();
         } else if factoid::creates_factoid(&name, &msg) {
             match brain.create_factoid(msg.to_string()) {
                 Ok(_) => {

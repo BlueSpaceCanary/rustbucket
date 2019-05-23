@@ -76,14 +76,56 @@ impl FactoidKnowledge for Brain {
     }
 }
 
-pub fn is_awoo(s: &String) -> bool {
-    let lower_s = s.to_ascii_lowercase();
-    if !lower_s.starts_with("awoo") {
-        return false;
+// e.g. awoo -> awooooo or meow -> meoooow
+fn is_extension(base: &'static str, candidate: &str) -> bool {
+    fn inner_ext_check(
+        base: &mut Iterator<Item = char>,
+        mut candidate: &mut Iterator<Item = char>,
+    ) -> bool {
+        let h = match base.next() {
+            Some(chr) => chr,
+            None => {
+                // Base is out of characters, is this good or bad?
+                return candidate.next() == None;
+            }
+        };
+
+        let mut candidate_remainder =
+            candidate.skip_while(|x| x.to_lowercase().zip(h.to_lowercase()).all(|(l, r)| l == r));
+        inner_ext_check(base, &mut candidate_remainder)
     }
 
-    let rest = &lower_s[4..];
-    !rest.chars().any(|x| x != 'o')
+    inner_ext_check(&mut base.chars(), &mut candidate.chars())
+}
+
+pub fn is_awoo(s: &str) -> bool {
+    is_extension("awoo", s)
+}
+
+#[test]
+pub fn test_awoos() {
+    assert!(is_awoo("awoo"));
+    assert!(is_awoo("aaaawoo"));
+    assert!(is_awoo("aaawwwwoooo"));
+    assert!(is_awoo("aaAaAawwWwwwwoOOOooo"));
+    // TODO: this didn't work before, still doesn't,
+    // assert!(!is_awoo("awo"));
+    assert!(!is_awoo("awo0"));
+}
+
+pub fn is_meow(s: &str) -> bool {
+    is_extension("meow", s) || is_extension("miao", s) || is_extension("miaow", s)
+}
+
+#[test]
+pub fn test_meows() {
+    assert!(is_meow("meeeow"));
+    assert!(is_meow("miao"));
+    assert!(is_meow("mmmeeeooowww"));
+    // TODO: this didn't work before, still doesn't,
+    // assert!(!is_awoo("awo"));
+    assert!(!is_meow("me0w"));
+    assert!(!is_meow("meowffff"));
 }
 
 // TODO needs to split on whitespass + punctuassion
