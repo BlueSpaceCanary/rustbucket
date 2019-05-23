@@ -1,6 +1,6 @@
 use rand::prelude::*;
 use rand::prng::XorShiftRng;
-use rand::rngs::SmallRng;
+
 use rand::FromEntropy;
 
 use std::collections::HashMap;
@@ -27,9 +27,9 @@ impl Brain {
 }
 
 pub trait FactoidKnowledge {
-    fn create_factoid(&mut self, String) -> Result<(), Error>;
-    fn get_factoid<'a>(&'a mut self, &String) -> Option<&'a String>;
-    fn literal_factoid(&self, &String) -> String;
+    fn create_factoid(&mut self, _: String) -> Result<(), Error>;
+    fn get_factoid<'a>(&'a mut self, _: &String) -> Option<&'a String>;
+    fn literal_factoid(&self, _: &String) -> String;
 }
 
 // TODO strip whitespass + punctuassion
@@ -80,7 +80,7 @@ impl FactoidKnowledge for Brain {
 fn is_extension(base: &'static str, candidate: &str) -> bool {
     fn inner_ext_check(
         base: &mut Iterator<Item = char>,
-        mut candidate: &mut Iterator<Item = char>,
+        candidate: &mut Iterator<Item = char>,
     ) -> bool {
         let h = match base.next() {
             Some(chr) => chr,
