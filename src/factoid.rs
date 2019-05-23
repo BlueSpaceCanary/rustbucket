@@ -1,10 +1,8 @@
 use rand::prelude::*;
 use rand::prng::XorShiftRng;
-
-use rand::FromEntropy;
-
 use std::collections::HashMap;
 use std::io::Error;
+use std::iter::Peekable;
 
 pub struct Brain {
     name: String,
@@ -76,56 +74,97 @@ impl FactoidKnowledge for Brain {
     }
 }
 
-// e.g. awoo -> awooooo or meow -> meoooow
-fn is_extension(base: &'static str, candidate: &str) -> bool {
-    fn inner_ext_check(
-        base: &mut Iterator<Item = char>,
-        candidate: &mut Iterator<Item = char>,
-    ) -> bool {
-        let h = match base.next() {
-            Some(chr) => chr,
-            None => {
-                // Base is out of characters, is this good or bad?
-                return candidate.next() == None;
-            }
-        };
+fn co_fast_forward<I, T>(i1: &mut Peekable<I>, h1: T, i2: &mut Peekable<I>, h2: T)
+where
+    I: std::iter::Iterator<Item = T>,
+    T: std::cmp::PartialEq + Copy + Clone,
+{
+    while let (Some(p1), Some(p2)) = (i1.peek(), i2.peek()) {
+        if p1 == &h1 && p2 == &h2 && h1 == h2 {
+            i1.next();
+            i2.next();
+        } else {
+            // run is over, break
+            return;
+        }
+    }
+}
 
-        let mut candidate_remainder =
-            candidate.skip_while(|x| x.to_lowercase().zip(h.to_lowercase()).all(|(l, r)| l == r));
-        inner_ext_check(base, &mut candidate_remainder)
+// e.g. awoo -> awooooo or meow -> meoooow
+fn is_extension(base: &String, candidate: &String) -> bool {
+    if base.len() == 0 && candidate.len() == 0 {
+        return true;
+    } else if base.len() == 0 && candidate.len() > 0 {
+        return false;
     }
 
-    inner_ext_check(&mut base.chars(), &mut candidate.chars())
-}
+    let my_base = base.to_lowercase().to_string();
+    let my_candidate = candidate.to_lowercase().to_string();
 
-pub fn is_awoo(s: &str) -> bool {
-    is_extension("awoo", s)
+    let mut bs = my_base.chars().peekable();
+    let mut cs = my_candidate.chars().peekable();
+
+    let mut b = bs.next().unwrap(); // If you pass in an empty base it's
+                                    // your problem >:(
+    let mut c = match cs.next() {
+        Some(chr) => chr,
+        None => return false,
+    };
+
+    loop {
+        // first, fast forward bs to the end of its current "run",
+        // while making sure cs moves with us
+        co_fast_forward(&mut bs, b, &mut cs, c);
+
+        // We've moved b and c to the end of their *shared* run.  Now,
+        // keep moving c forward til it finishes that *entire* run, if
+        // its run was longer. If c runs out entirely, move b forward
+        // one as well. If it had more left, they didn't match. If
+        // it's also done, they did.
+
+        while b == c {
+            c = match cs.next() {
+                Some(chr) => chr,
+                None => return bs.next().is_none(),
+            };
+        }
+
+        // if we're still here, cs had at least 1 element left. bs
+        // must have at least 1 element left as well, or the two don't
+        // match.
+        b = match bs.next() {
+            Some(chr) => chr,
+            None => return false,
+        };
+
+        // if their next chars don't match, this can't work.
+        if b != c {
+            return false;
+        }
+    }
 }
 
 #[test]
-pub fn test_awoos() {
-    assert!(is_awoo("awoo"));
-    assert!(is_awoo("aaaawoo"));
-    assert!(is_awoo("aaawwwwoooo"));
-    assert!(is_awoo("aaAaAawwWwwwwoOOOooo"));
-    // TODO: this didn't work before, still doesn't,
-    // assert!(!is_awoo("awo"));
-    assert!(!is_awoo("awo0"));
+pub fn test_is_extension() {
+    assert!(is_extension(&"awoo".to_string(), &"awoo".to_string()));
+    assert!(is_extension(&"awoo".to_string(), &"awooo".to_string()));
+    assert!(is_extension(&"awoo".to_string(), &"aawoo".to_string()));
+    assert!(is_extension(&"awoo".to_string(), &"awwoo".to_string()));
+    assert!(!is_extension(&"awoo".to_string(), &"awo".to_string()));
+    assert!(!is_extension(&"awwo".to_string(), &"awo".to_string()));
+    assert!(!is_extension(&"awoo".to_string(), &"ao".to_string()));
+    assert!(!is_extension(&"awoo".to_string(), &"aowo".to_string()));
+    assert!(!is_extension(&"awoo".to_string(), &"aw0o".to_string()));
 }
 
-pub fn is_meow(s: &str) -> bool {
-    is_extension("meow", s) || is_extension("miao", s) || is_extension("miaow", s)
+pub fn is_awoo(s: &String) -> bool {
+    is_extension(&"awoo".to_string(), s)
 }
 
-#[test]
-pub fn test_meows() {
-    assert!(is_meow("meeeow"));
-    assert!(is_meow("miao"));
-    assert!(is_meow("mmmeeeooowww"));
-    // TODO: this didn't work before, still doesn't,
-    // assert!(!is_awoo("awo"));
-    assert!(!is_meow("me0w"));
-    assert!(!is_meow("meowffff"));
+pub fn is_meow(s: &String) -> bool {
+    is_extension(&"meow".to_string(), s)
+        || is_extension(&"miao".to_string(), s)
+        || is_extension(&"miaow".to_string(), s)
 }
 
 // TODO needs to split on whitespass + punctuassion
