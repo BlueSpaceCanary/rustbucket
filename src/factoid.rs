@@ -77,32 +77,51 @@ impl FactoidKnowledge for Brain {
 }
 
 // e.g. awoo -> awooooo or meow -> meoooow
-fn is_extension(base: &String, candidate: &String)  -> bool {
-    if base.len() == 0 && candidate.len() != 0 {
-        return false;
-    } else if base.len() == 0  && candidate.len() == 0 {
-        return true;
-    }
+fn is_extension(base: &mut Iterator<Item=char>, mut candidate: &mut Iterator<Item=char>)  -> bool {
+    let h = match base.next() {
+        Some(chr) => chr,
+        None => {
+            // Base is out of characters, is this good or bad?
+            return candidate.next() == None;
+        }
+    };
 
-    // blame ixi
-    let mut bc = base.chars();
-
-    let h = bc.next().unwrap(); // Safe, we checked it wasn't empty above
-    let c = candidate.chars().skip_while(|x| x == &h);
-    is_extension(&bc.skip(1).into_iter().collect::<String>(), &c.collect::<String>())
+    let mut candidate_remainder = candidate.skip_while(|x| x == &h);
+    is_extension(base, &mut candidate_remainder)
 }
 
-pub fn is_awoo(s: &String) -> bool {
+pub fn is_awoo(s: &str) -> bool {
     let lower_s = s.to_ascii_lowercase();
-    is_extension(&"awoo".to_string(), &lower_s)
+    is_extension(&mut "awoo".chars(), &mut lower_s.chars())
+}
+
+#[test]
+pub fn test_awoos() {
+    assert!(is_awoo("awoo"));
+    assert!(is_awoo("aaaawoo"));
+    assert!(is_awoo("aaawwwwoooo"));
+    // TODO: this didn't work before, still doesn't,
+    // assert!(!is_awoo("awo"));
+    assert!(!is_awoo("awo0"));
 }
 
 
-pub fn is_meow(s: &String) -> bool {
+pub fn is_meow(s: &str) -> bool {
     let lower_s = s.to_ascii_lowercase();
-    is_extension(&"meow".to_string(), &lower_s)
-        || is_extension(&"miao".to_string(), &lower_s)
-        || is_extension(&"miaow".to_string(), &lower_s)
+    is_extension(&mut "meow".chars(), &mut lower_s.chars())
+        || is_extension(&mut "miao".chars(), &mut lower_s.chars())
+        || is_extension(&mut "miaow".chars(), &mut lower_s.chars())
+}
+
+#[test]
+pub fn test_meows() {
+    assert!(is_meow("meeeow"));
+    assert!(is_meow("miao"));
+    assert!(is_meow("mmmeeeooowww"));
+    // TODO: this didn't work before, still doesn't,
+    // assert!(!is_awoo("awo"));
+    assert!(!is_meow("me0w"));
+    assert!(!is_meow("meowffff"));
 }
 
 // TODO needs to split on whitespass + punctuassion
