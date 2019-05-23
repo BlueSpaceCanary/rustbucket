@@ -1,6 +1,5 @@
 use rand::prelude::*;
 use rand::prng::XorShiftRng;
-
 use std::collections::HashMap;
 use std::io::Error;
 
@@ -81,7 +80,7 @@ fn is_extension(base: &String, candidate: &String) -> bool {
     } else if base.len() == 0 && candidate.len() > 0 {
         return false;
     }
-    
+
     let my_base = base.to_lowercase().to_string();
     let my_candidate = candidate.to_lowercase().to_string();
 
@@ -91,15 +90,35 @@ fn is_extension(base: &String, candidate: &String) -> bool {
     loop {
         let _b = match bs.next() {
             Some(chr) => chr,
-            None    => break 
+            None => break,
         };
 
         let _c = match cs.next() {
             Some(chr) => chr,
-            None    => return false
+            None => return false,
         };
 
+        // basically, we fast forward along so long as both maintain a
+        // run of the same duplicated char
+        while b == c {
+            let peek = match bs.peek() {
+                Some(chr) => chr,
+                None => break,
+            };
 
+            if b != *peek {
+                break;
+            }
+            b = match bs.next() {
+                Some(chr) => chr,
+                None => break,
+            };
+
+            c = match cs.next() {
+                Some(chr) => chr,
+                None => return false,
+            };
+        }
     }
 
     return cs.next() == None;
@@ -132,7 +151,9 @@ pub fn test_awoos() {
 }
 
 pub fn is_meow(s: &String) -> bool {
-    is_extension(&"meow".to_string(), s) || is_extension(&"miao".to_string(), s) || is_extension(&"miaow".to_string(), s)
+    is_extension(&"meow".to_string(), s)
+        || is_extension(&"miao".to_string(), s)
+        || is_extension(&"miaow".to_string(), s)
 }
 
 #[test]
