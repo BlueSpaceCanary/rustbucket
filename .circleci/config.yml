@@ -19,8 +19,9 @@ jobs:
       - run:
           name: Check formatting
           command: |
+            rustup component add rustfmt-preview
             rustfmt --version
-            cargo fmt -- --check
+            cargo fmt -- --check --color=auto
       - run:
           name: Nightly Build
           command: |
