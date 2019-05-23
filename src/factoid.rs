@@ -78,7 +78,10 @@ impl FactoidKnowledge for Brain {
 
 // e.g. awoo -> awooooo or meow -> meoooow
 fn is_extension(base: &'static str, candidate: &str) -> bool {
-    fn inner_ext_check(base: &mut Iterator<Item=char>, mut candidate: &mut Iterator<Item=char>)  -> bool {
+    fn inner_ext_check(
+        base: &mut Iterator<Item = char>,
+        mut candidate: &mut Iterator<Item = char>,
+    ) -> bool {
         let h = match base.next() {
             Some(chr) => chr,
             None => {
@@ -87,9 +90,8 @@ fn is_extension(base: &'static str, candidate: &str) -> bool {
             }
         };
 
-        let mut candidate_remainder = candidate.skip_while(|x| {
-            x.to_lowercase().zip(h.to_lowercase()).all(|(l, r)| l == r)
-        });
+        let mut candidate_remainder =
+            candidate.skip_while(|x| x.to_lowercase().zip(h.to_lowercase()).all(|(l, r)| l == r));
         inner_ext_check(base, &mut candidate_remainder)
     }
 
@@ -111,11 +113,8 @@ pub fn test_awoos() {
     assert!(!is_awoo("awo0"));
 }
 
-
 pub fn is_meow(s: &str) -> bool {
-    is_extension("meow", s)
-        || is_extension("miao", s)
-        || is_extension("miaow", s)
+    is_extension("meow", s) || is_extension("miao", s) || is_extension("miaow", s)
 }
 
 #[test]
