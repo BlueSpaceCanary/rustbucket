@@ -125,12 +125,7 @@ fn is_extension(base: &String, candidate: &String) -> bool {
         while b == c {
             c = match cs.next() {
                 Some(chr) => chr,
-                None => {
-                    match bs.next() {
-                        Some(_) => return false,
-                        None => return true,
-                    };
-                }
+                None => return bs.next().is_none(),
             };
         }
 
