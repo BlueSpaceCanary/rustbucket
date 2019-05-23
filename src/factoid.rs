@@ -76,14 +76,31 @@ impl FactoidKnowledge for Brain {
     }
 }
 
+// e.g. awoo -> awooooo or meow -> meoooow
+fn is_extension(base: &String, candidate: &String)  -> bool {
+    if base.len() == 0 && candidate.len() != 0 {
+        return false;
+    } else if base.len() == 0  && candidate.len() == 0 {
+        return true;
+    }
+    
+    // blame ixi
+    let h = base.chars().next().unwrap(); // Safe, we checked it wasn't empty above
+    let c = candidate.chars().skip_while(|x| x == &h);
+    is_extension(&base.chars().skip(1).into_iter().collect::<String>(), &c.collect::<String>())
+}
+
 pub fn is_awoo(s: &String) -> bool {
     let lower_s = s.to_ascii_lowercase();
-    if !lower_s.starts_with("awoo") {
-        return false;
-    }
+    is_extension(&"awoo".to_string(), &lower_s)
+}
 
-    let rest = &lower_s[4..];
-    !rest.chars().any(|x| x != 'o')
+
+pub fn is_meow(s: &String) -> bool {
+    let lower_s = s.to_ascii_lowercase();
+    is_extension(&"meow".to_string(), &lower_s)
+        || is_extension(&"miao".to_string(), &lower_s)
+        || is_extension(&"miaow".to_string(), &lower_s)
 }
 
 // TODO needs to split on whitespass + punctuassion
