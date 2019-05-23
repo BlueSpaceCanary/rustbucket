@@ -42,7 +42,7 @@ impl FactoidKnowledge for Brain {
         let iter = cleaned_string.split_whitespace();
         let index = iter
             .clone()
-            .position(|pivot| pivot == "is" || pivot == "are" )
+            .position(|pivot| pivot == "is" || pivot == "are")
             .unwrap();
 
         let tmp: Vec<&str> = iter.collect();
@@ -56,7 +56,7 @@ impl FactoidKnowledge for Brain {
             .or_insert(vec![])
             .push(full_val);
 
-    Ok(())
+        Ok(())
     }
 
     fn get_factoid<'a>(&'a mut self, k: &String) -> Option<&'a String> {
@@ -77,10 +77,10 @@ impl FactoidKnowledge for Brain {
 }
 
 // e.g. awoo -> awooooo or meow -> meoooow
-fn is_extension(base: &String, candidate: &String)  -> bool {
+fn is_extension(base: &String, candidate: &String) -> bool {
     if base.len() == 0 && candidate.len() != 0 {
         return false;
-    } else if base.len() == 0  && candidate.len() == 0 {
+    } else if base.len() == 0 && candidate.len() == 0 {
         return true;
     }
 
@@ -89,14 +89,16 @@ fn is_extension(base: &String, candidate: &String)  -> bool {
 
     let h = bc.next().unwrap(); // Safe, we checked it wasn't empty above
     let c = candidate.chars().skip_while(|x| x == &h);
-    is_extension(&bc.skip(1).into_iter().collect::<String>(), &c.collect::<String>())
+    is_extension(
+        &bc.skip(1).into_iter().collect::<String>(),
+        &c.collect::<String>(),
+    )
 }
 
 pub fn is_awoo(s: &String) -> bool {
     let lower_s = s.to_ascii_lowercase();
     is_extension(&"awoo".to_string(), &lower_s)
 }
-
 
 pub fn is_meow(s: &String) -> bool {
     let lower_s = s.to_ascii_lowercase();
@@ -208,10 +210,7 @@ mod tests {
         );
 
         assert!(
-            !creates_factoid(
-                &"bot_name".to_string(),
-                &"bot_name: a foo b".to_string()
-            ),
+            !creates_factoid(&"bot_name".to_string(), &"bot_name: a foo b".to_string()),
             "None of my verbs were present, this shouldn't create a factoid"
         );
     }
