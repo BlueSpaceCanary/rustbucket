@@ -2,6 +2,7 @@ use rand::prelude::*;
 use rand::prng::XorShiftRng;
 use std::collections::HashMap;
 use std::io::Error;
+use std::iter::Peekable;
 
 pub struct Brain {
     name: String,
@@ -73,6 +74,22 @@ impl FactoidKnowledge for Brain {
     }
 }
 
+fn co_fast_forward<I, T>(i1: &mut Peekable<I>, h1: T, i2: &mut Peekable<I>, h2: T)
+where
+    I: std::iter::Iterator<Item = T>,
+    T: std::cmp::PartialEq + Copy + Clone,
+{
+    while let (Some(p1), Some(p2)) = (i1.peek(), i2.peek()) {
+        if p1 == &h1 && p2 == &h2 && h1 == h2 {
+            i1.next();
+            i2.next();
+        } else {
+            // run is over, break
+            return;
+        }
+    }
+}
+
 // e.g. awoo -> awooooo or meow -> meoooow
 fn is_extension(base: &String, candidate: &String) -> bool {
     if base.len() == 0 && candidate.len() == 0 {
@@ -94,34 +111,25 @@ fn is_extension(base: &String, candidate: &String) -> bool {
         None => return false,
     };
 
-    'outer: loop {
+    loop {
         // first, fast forward bs to the end of its current "run",
         // while making sure cs moves with us
-        while let (Some(bx), Some(cx)) = (bs.peek(), cs.peek()) {
-            if *bx == b && *cx == c && c == b {
-                b = bs.next().unwrap(); // We know it's safe, we peeked
-                c = cs.next().unwrap(); // We know it's safe, we peeked
-            } else {
-                // run is over, break
-                break;
-            }
-        }
+        co_fast_forward(&mut bs, b, &mut cs, c);
 
         // We've moved b and c to the end of their *shared* run.  Now,
         // keep moving c forward til it finishes that *entire* run, if
         // its run was longer. If c runs out entirely, move b forward
         // one as well. If it had more left, they didn't match. If
         // it's also done, they did.
+
         while b == c {
             c = match cs.next() {
                 Some(chr) => chr,
                 None => {
-                    b = match bs.next() {
+                    match bs.next() {
                         Some(_) => return false,
                         None => return true,
                     };
-
-                    break 'outer;
                 }
             };
         }
@@ -139,8 +147,6 @@ fn is_extension(base: &String, candidate: &String) -> bool {
             return false;
         }
     }
-
-    return bs.next() == None;
 }
 
 #[test]
