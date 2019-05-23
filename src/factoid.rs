@@ -1,7 +1,5 @@
 use rand::prelude::*;
 use rand::prng::XorShiftRng;
-use rand::rngs::SmallRng;
-use rand::FromEntropy;
 
 use std::collections::HashMap;
 use std::io::Error;
@@ -77,55 +75,95 @@ impl FactoidKnowledge for Brain {
 }
 
 // e.g. awoo -> awooooo or meow -> meoooow
-fn is_extension(base: &'static str, candidate: &str) -> bool {
-    fn inner_ext_check(
-        base: &mut Iterator<Item = char>,
-        mut candidate: &mut Iterator<Item = char>,
-    ) -> bool {
-        let h = match base.next() {
+fn is_extension(base: &String, candidate: &String) -> bool {
+    if base.len() == 0 && candidate.len() == 0 {
+        return true;
+    } else if base.len() == 0 && candidate.len() > 0 {
+        return false;
+    }
+    
+    let my_base = base.to_lowercase().to_string();
+    let my_candidate = candidate.to_lowercase().to_string();
+
+    let mut bs = my_base.chars().peekable();
+    let mut cs = my_candidate.chars();
+
+    loop {
+        let mut b = match bs.next() {
             Some(chr) => chr,
-            None => {
-                // Base is out of characters, is this good or bad?
-                return candidate.next() == None;
-            }
+            None    => break 
         };
 
-        let mut candidate_remainder =
-            candidate.skip_while(|x| x.to_lowercase().zip(h.to_lowercase()).all(|(l, r)| l == r));
-        inner_ext_check(base, &mut candidate_remainder)
+        let mut c = match cs.next() {
+            Some(chr) => chr,
+            None    => return false
+        };
+
+
+        // basically, we fast forward along so long as both maintain a
+        // run of the same duplicated char
+        while b == c {
+            let peek = match bs.peek() {
+                Some(chr)  => chr,
+                None => break
+            };
+            
+            if b != *peek {
+                break;
+            }
+            b = match bs.next() {
+                Some(chr) => chr,
+                None => break
+            };
+
+            c = match cs.next() {
+                Some(chr) => chr,
+                None    => return false
+            };
+        }
     }
 
-    inner_ext_check(&mut base.chars(), &mut candidate.chars())
+    return cs.next() == None;
 }
 
-pub fn is_awoo(s: &str) -> bool {
-    is_extension("awoo", s)
+#[test]
+pub fn test_is_extension() {
+    assert!(is_extension(&"awoo".to_string(), &"awoo".to_string()));
+    assert!(is_extension(&"awoo".to_string(), &"awooo".to_string()));
+    assert!(is_extension(&"awoo".to_string(), &"aawoo".to_string()));
+    assert!(is_extension(&"awoo".to_string(), &"awwoo".to_string()));
+    assert!(!is_extension(&"awoo".to_string(), &"awo".to_string()));
+    assert!(!is_extension(&"awoo".to_string(), &"aowo".to_string()));
+    assert!(!is_extension(&"awoo".to_string(), &"aw0o".to_string()));
+}
+
+pub fn is_awoo(s: &String) -> bool {
+    is_extension(&"awoo".to_string(), s)
 }
 
 #[test]
 pub fn test_awoos() {
-    assert!(is_awoo("awoo"));
-    assert!(is_awoo("aaaawoo"));
-    assert!(is_awoo("aaawwwwoooo"));
-    assert!(is_awoo("aaAaAawwWwwwwoOOOooo"));
-    // TODO: this didn't work before, still doesn't,
-    // assert!(!is_awoo("awo"));
-    assert!(!is_awoo("awo0"));
+    assert!(is_awoo(&"awoo".to_string()));
+    assert!(is_awoo(&"aaaawoo".to_string()));
+    assert!(is_awoo(&"aaawwwwoooo".to_string()));
+    assert!(is_awoo(&"aaAaAawwWwwwwoOOOooo".to_string()));
+    assert!(!is_awoo(&"awo".to_string()));
+    assert!(!is_awoo(&"awo0".to_string()));
+    assert!(!is_awoo(&"wo".to_string()));
 }
 
-pub fn is_meow(s: &str) -> bool {
-    is_extension("meow", s) || is_extension("miao", s) || is_extension("miaow", s)
+pub fn is_meow(s: &String) -> bool {
+    is_extension(&"meow".to_string(), s) || is_extension(&"miao".to_string(), s) || is_extension(&"miaow".to_string(), s)
 }
 
 #[test]
 pub fn test_meows() {
-    assert!(is_meow("meeeow"));
-    assert!(is_meow("miao"));
-    assert!(is_meow("mmmeeeooowww"));
-    // TODO: this didn't work before, still doesn't,
-    // assert!(!is_awoo("awo"));
-    assert!(!is_meow("me0w"));
-    assert!(!is_meow("meowffff"));
+    assert!(is_meow(&"meeeow".to_string()));
+    assert!(is_meow(&"miao".to_string()));
+    assert!(is_meow(&"mmmeeeooowww".to_string()));
+    assert!(!is_awoo(&"mew".to_string()));
+    assert!(!is_meow(&"me0w".to_string()));
+    assert!(!is_meow(&"meowffff".to_string()));
 }
 
 // TODO needs to split on whitespass + punctuassion
@@ -234,10 +272,5 @@ mod tests {
             !creates_factoid(&"bot_name".to_string(), &"bot_name: a foo b".to_string()),
             "None of my verbs were present, this shouldn't create a factoid"
         );
-    }
-
-    #[test]
-    fn awo_is_not_awoo() {
-        assert!(!is_awoo("awo"));
     }
 }
