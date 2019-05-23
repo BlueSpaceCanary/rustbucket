@@ -85,43 +85,61 @@ fn is_extension(base: &String, candidate: &String) -> bool {
     let my_candidate = candidate.to_lowercase().to_string();
 
     let mut bs = my_base.chars().peekable();
-    let mut cs = my_candidate.chars();
+    let mut cs = my_candidate.chars().peekable();
 
-    loop {
-        let _b = match bs.next() {
-            Some(chr) => chr,
-            None => break,
-        };
+    let mut b = bs.next().unwrap(); // If you base in an empty base it's
+                                    // your problem >:(
+    let mut c = match cs.next() {
+        Some(chr) => chr,
+        None => return false,
+    };
 
-        let _c = match cs.next() {
+    'outer: loop {
+        // first, fast forward bs to the end of its current "run",
+        // while making sure cs moves with us
+        while let (Some(bx), Some(cx)) = (bs.peek(), cs.peek()) {
+            if *bx == b && *cx == c && c == b {
+                b = bs.next().unwrap(); // We know it's safe, we peeked
+                c = cs.next().unwrap(); // We know it's safe, we peeked
+            } else {
+                // run is over, break
+                break;
+            }
+        }
+
+        // We've moved b and c to the end of their *shared* run.  Now,
+        // keep moving c forward til it finishes that *entire* run, if
+        // its run was longer. If c runs out entirely, move b forward
+        // one as well. If it had more left, they didn't match. If
+        // it's also done, they did.
+        while b == c {
+            c = match cs.next() {
+                Some(chr) => chr,
+                None => {
+                    b = match bs.next() {
+                        Some(_) => return false,
+                        None => return true,
+                    };
+
+                    break 'outer;
+                }};
+        }
+
+        // if we're still here, cs had at least 1 element left. bs
+        // must have at least 1 element left as well, or the two don't
+        // match.
+        b = match bs.next() {
             Some(chr) => chr,
             None => return false,
         };
 
-        // basically, we fast forward along so long as both maintain a
-        // run of the same duplicated char
-        while b == c {
-            let peek = match bs.peek() {
-                Some(chr) => chr,
-                None => break,
-            };
-
-            if b != *peek {
-                break;
-            }
-            b = match bs.next() {
-                Some(chr) => chr,
-                None => break,
-            };
-
-            c = match cs.next() {
-                Some(chr) => chr,
-                None => return false,
-            };
+        // if their next chars don't match, this can't work.
+        if b != c {
+            return false;
         }
     }
 
-    return cs.next() == None;
+    return bs.next() == None;
 }
 
 #[test]
@@ -131,6 +149,8 @@ pub fn test_is_extension() {
     assert!(is_extension(&"awoo".to_string(), &"aawoo".to_string()));
     assert!(is_extension(&"awoo".to_string(), &"awwoo".to_string()));
     assert!(!is_extension(&"awoo".to_string(), &"awo".to_string()));
+    assert!(!is_extension(&"awwo".to_string(), &"awo".to_string()));
+    assert!(!is_extension(&"awoo".to_string(), &"ao".to_string()));
     assert!(!is_extension(&"awoo".to_string(), &"aowo".to_string()));
     assert!(!is_extension(&"awoo".to_string(), &"aw0o".to_string()));
 }
@@ -139,31 +159,10 @@ pub fn is_awoo(s: &String) -> bool {
     is_extension(&"awoo".to_string(), s)
 }
 
-#[test]
-pub fn test_awoos() {
-    assert!(is_awoo(&"awoo".to_string()));
-    assert!(is_awoo(&"aaaawoo".to_string()));
-    assert!(is_awoo(&"aaawwwwoooo".to_string()));
-    assert!(is_awoo(&"aaAaAawwWwwwwoOOOooo".to_string()));
-    assert!(!is_awoo(&"awo".to_string()));
-    assert!(!is_awoo(&"awo0".to_string()));
-    assert!(!is_awoo(&"wo".to_string()));
-}
-
 pub fn is_meow(s: &String) -> bool {
     is_extension(&"meow".to_string(), s)
         || is_extension(&"miao".to_string(), s)
         || is_extension(&"miaow".to_string(), s)
-}
-
-#[test]
-pub fn test_meows() {
-    assert!(is_meow(&"meeeow".to_string()));
-    assert!(is_meow(&"miao".to_string()));
-    assert!(is_meow(&"mmmeeeooowww".to_string()));
-    assert!(!is_awoo(&"mew".to_string()));
-    assert!(!is_meow(&"me0w".to_string()));
-    assert!(!is_meow(&"meowffff".to_string()));
 }
 
 // TODO needs to split on whitespass + punctuassion
