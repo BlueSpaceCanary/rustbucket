@@ -122,7 +122,8 @@ fn is_extension(base: &String, candidate: &String) -> bool {
                     };
 
                     break 'outer;
-                }};
+                }
+            };
         }
 
         // if we're still here, cs had at least 1 element left. bs
