@@ -176,6 +176,10 @@ pub fn creates_factoid(name: &String, s: &String) -> bool {
     s.contains(" is ") || s.contains(" are ")
 }
 
+pub fn goblin(s: &String) -> bool {
+    s.contains("goblin")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
