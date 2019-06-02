@@ -70,6 +70,10 @@ fn connection_handler(
             client
                 .send_privmsg(message.response_target().unwrap_or(target), &v)
                 .unwrap();
+        } else if factoid::goblin(msg) {
+            client
+                .send_privmsg(message.response_target().unwrap_or(target), "MIAOW!")
+                .unwrap();
         }
     }
 }
