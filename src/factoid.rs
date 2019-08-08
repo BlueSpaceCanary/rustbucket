@@ -1,208 +1,106 @@
-use rand::prelude::*;
-use rand::prng::XorShiftRng;
-use std::collections::HashMap;
-use std::io::Error;
-use std::iter::Peekable;
+extern crate rand;
+extern crate rand_core;
+extern crate rand_xorshift;
+
+mod responder;
+mod util;
+
+use rand::prelude::IteratorRandom;
+use rand_core::SeedableRng;
+use rand_xorshift::XorShiftRng;
+use responder::Responder;
+use responder::Responders;
 
 pub struct Brain {
     name: String,
-    hippocampus: HashMap<String, Vec<String>>,
     rng: XorShiftRng,
+    responders: responder::Responders,
 }
 
 impl Brain {
     pub fn new(name: String) -> Brain {
         Brain {
-            hippocampus: HashMap::new(),
             name: name,
-            rng: XorShiftRng::from_entropy(),
+            rng: XorShiftRng::seed_from_u64(69),
+            responders: Responders::default(),
         }
     }
 
-    pub fn set_rng_seed(&mut self, seed: [u8; 16]) {
-        self.rng = XorShiftRng::from_seed(seed);
+    pub fn set_rng_seed(&mut self, seed: u64) {
+        self.rng = XorShiftRng::seed_from_u64(seed)
+    }
+
+    pub fn respond(&mut self, input: &String) -> Option<String> {
+        if self.creates_factoid(input) {
+            return self.create_factoid(input);
+        }
+
+        // Returns None if respond() gave back an empty vec
+        self.responders
+            .respond(input)
+            .into_iter()
+            .choose(&mut self.rng)
+    }
+
+    pub fn register_responder<T: 'static + Responder>(&mut self, responder: T) {
+        self.responders.register_responder(responder)
+    }
+
+    fn addressed(&self, input: &String) -> bool {
+        input.starts_with((self.name.to_owned() + ":").as_str())
     }
 }
 
-pub trait FactoidKnowledge {
-    fn create_factoid(&mut self, _: String) -> Result<(), Error>;
-    fn get_factoid<'a>(&'a mut self, _: &String) -> Option<&'a String>;
-    fn literal_factoid(&self, _: &String) -> String;
+pub trait KnowsFactoids {
+    fn creates_factoid(&self, _: &String) -> bool;
+    fn create_factoid(&mut self, _: &String) -> Option<String>;
 }
 
 // TODO strip whitespass + punctuassion
-impl FactoidKnowledge for Brain {
-    fn create_factoid(&mut self, s: String) -> Result<(), Error> {
+impl KnowsFactoids for Brain {
+    fn create_factoid(&mut self, s: &String) -> Option<String> {
         // Drop name:
         let name_index = s.find(":").unwrap();
         let cleaned_string = s.clone().split_off(name_index + 1);
 
         let iter = cleaned_string.split_whitespace();
-        let index = iter
+        let index = match iter
             .clone()
             .position(|pivot| pivot == "is" || pivot == "are")
-            .unwrap();
+        {
+            Some(i) => i,
+            None => return None, // No verb here
+        };
 
         let tmp: Vec<&str> = iter.collect();
         let (k, v) = tmp.split_at(index);
 
-        let full_key = k.join(" ").to_owned();
-        let full_val = v[1..].join(" ").to_owned();
+        let full_key = k.join(" ");
+        let full_val = v[1..].join(" ");
 
-        self.hippocampus
-            .entry(full_key)
-            .or_insert(vec![])
-            .push(full_val);
+        let factoid_resp = responder::FactoidResponder::new(full_key.clone(), full_val.clone());
+        self.register_responder(factoid_resp);
 
-        Ok(())
+        return Some(format!(
+            "Ok, now I know that {} {} {}",
+            full_key, v[0], full_val
+        ));
     }
 
-    fn get_factoid<'a>(&'a mut self, k: &String) -> Option<&'a String> {
-        if let Some(vals) = self.hippocampus.get(k) {
-            self.rng.choose(&vals)
-        } else {
-            None
-        }
+    fn creates_factoid(&self, s: &String) -> bool {
+        self.addressed(s) && (s.contains(" is ") || s.contains(" are "))
     }
-
-    // TODO one can not know things in many ways!
-    fn literal_factoid(&self, k: &String) -> String {
-        match self.hippocampus.get(k) {
-            Some(v) => v.join(", "),
-            None => "I don't know anything about that".to_string(),
-        }
-    }
-}
-
-fn co_fast_forward<I, T>(i1: &mut Peekable<I>, h1: T, i2: &mut Peekable<I>, h2: T)
-where
-    I: std::iter::Iterator<Item = T>,
-    T: std::cmp::PartialEq + Copy + Clone,
-{
-    while let (Some(p1), Some(p2)) = (i1.peek(), i2.peek()) {
-        if p1 == &h1 && p2 == &h2 && h1 == h2 {
-            i1.next();
-            i2.next();
-        } else {
-            // run is over, break
-            return;
-        }
-    }
-}
-
-// e.g. awoo -> awooooo or meow -> meoooow
-fn is_extension(base: &String, candidate: &String) -> bool {
-    if base.len() == 0 && candidate.len() == 0 {
-        return true;
-    } else if base.len() == 0 && candidate.len() > 0 {
-        return false;
-    }
-
-    let my_base = base.to_lowercase().to_string();
-    let my_candidate = candidate.to_lowercase().to_string();
-
-    let mut bs = my_base.chars().peekable();
-    let mut cs = my_candidate.chars().peekable();
-
-    let mut b = bs.next().unwrap(); // If you pass in an empty base it's
-                                    // your problem >:(
-    let mut c = match cs.next() {
-        Some(chr) => chr,
-        None => return false,
-    };
-
-    loop {
-        // first, fast forward bs to the end of its current "run",
-        // while making sure cs moves with us
-        co_fast_forward(&mut bs, b, &mut cs, c);
-
-        // We've moved b and c to the end of their *shared* run.  Now,
-        // keep moving c forward til it finishes that *entire* run, if
-        // its run was longer. If c runs out entirely, move b forward
-        // one as well. If it had more left, they didn't match. If
-        // it's also done, they did.
-
-        while b == c {
-            c = match cs.next() {
-                Some(chr) => chr,
-                None => return bs.next().is_none(),
-            };
-        }
-
-        // if we're still here, cs had at least 1 element left. bs
-        // must have at least 1 element left as well, or the two don't
-        // match.
-        b = match bs.next() {
-            Some(chr) => chr,
-            None => return false,
-        };
-
-        // if their next chars don't match, this can't work.
-        if b != c {
-            return false;
-        }
-    }
-}
-
-#[test]
-pub fn test_is_extension() {
-    assert!(is_extension(&"awoo".to_string(), &"awoo".to_string()));
-    assert!(is_extension(&"awoo".to_string(), &"awooo".to_string()));
-    assert!(is_extension(&"awoo".to_string(), &"aawoo".to_string()));
-    assert!(is_extension(&"awoo".to_string(), &"awwoo".to_string()));
-    assert!(!is_extension(&"awoo".to_string(), &"awo".to_string()));
-    assert!(!is_extension(&"awwo".to_string(), &"awo".to_string()));
-    assert!(!is_extension(&"awoo".to_string(), &"ao".to_string()));
-    assert!(!is_extension(&"awoo".to_string(), &"aowo".to_string()));
-    assert!(!is_extension(&"awoo".to_string(), &"aw0o".to_string()));
-}
-
-pub fn is_awoo(s: &String) -> bool {
-    is_extension(&"awoo".to_string(), s)
-}
-
-pub fn is_meow(s: &String) -> bool {
-    is_extension(&"meow".to_string(), s)
-        || is_extension(&"miao".to_string(), s)
-        || is_extension(&"miaow".to_string(), s)
-}
-
-// TODO needs to split on whitespass + punctuassion
-pub fn creates_factoid(name: &String, s: &String) -> bool {
-    if !s.starts_with((name.to_owned() + ":").as_str()) {
-        return false;
-    }
-
-    s.contains(" is ") || s.contains(" are ")
-}
-
-pub fn goblin(s: &String) -> bool {
-    s.contains("goblin")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn can_create_factoid() {
         let mut brain = Brain::new("sidra".to_owned());
-        brain.create_factoid("sidra: foo is bar".to_string());
-        assert_eq!(
-            brain.hippocampus.get("foo").unwrap(),
-            &vec!["bar".to_string()]
-        );
-    }
-
-    #[test]
-    fn can_retrieve_factoid() {
-        let mut brain = Brain::new("sidra".to_owned());
-        brain
-            .hippocampus
-            .insert("foo".to_string(), vec!["bar".to_string()]);
-        assert_eq!(
-            "bar".to_string(),
-            *brain.get_factoid(&"foo".to_string()).unwrap()
-        );
+        brain.create_factoid(&"sidra: foo is bar".to_string());
+        assert_eq!(brain.respond(&"foo".to_string()), Some("bar".to_string()));
     }
 
     #[test]
@@ -210,72 +108,42 @@ mod tests {
         let mut brain = Brain::new("sidra".to_owned());
 
         // Set arbitrarily to make the test work
-        brain.set_rng_seed([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        brain.set_rng_seed(0);
 
-        brain.create_factoid("sidra: foo is bar".to_string());
-        brain.create_factoid("sidra: foo is zip".to_string());
+        brain.create_factoid(&"sidra: foo is bar".to_string());
+        brain.create_factoid(&"sidra: foo is zip".to_string());
 
-        assert_eq!(
-            "bar".to_string(),
-            *brain.get_factoid(&"foo".to_string()).unwrap()
-        );
+        assert_eq!(brain.respond(&"foo".to_string()), Some("bar".to_string()));
 
         // Set arbitrarily to make the test work
-        brain.set_rng_seed([92, 0, 123, 0, 0, 0, 0, 0, 0, 19, 0, 0, 0, 0, 21, 42]);
+        brain.set_rng_seed(69);
 
-        assert_eq!(
-            "zip".to_string(),
-            *brain.get_factoid(&"foo".to_string()).unwrap()
-        )
+        assert_eq!(brain.respond(&"foo".to_string()), Some("zip".to_string()),);
     }
 
     #[test]
     fn no_nonfactoid_retrieval() {
         let mut brain = Brain::new("sidra".to_owned());
-        brain
-            .hippocampus
-            .insert("foo".to_string(), vec!["bar".to_string()]);
-        assert!(brain.get_factoid(&"bar".to_string()).is_none());
-    }
-
-    #[test]
-    fn can_literal_factoids() {
-        let mut brain = Brain::new("sidra".to_owned());
-        brain
-            .hippocampus
-            .insert("foo".to_string(), vec!["bar".to_string()]);
-        assert_eq!("bar".to_string(), brain.literal_factoid(&"foo".to_string()));
-
-        assert_eq!(
-            "I don't know anything about that".to_string(),
-            brain.literal_factoid(&"zip".to_string())
-        );
-
-        brain.create_factoid("sidra: foo is zip".to_string());
-        assert_eq!(
-            "bar, zip".to_string(),
-            brain.literal_factoid(&"foo".to_string())
-        );
-    }
-
-    #[test]
-    fn ids_factoid_creation() {
-        assert!(creates_factoid(
-            &"bot_name".to_string(),
-            &"bot_name: a is b".to_string()
-        ));
+        brain.create_factoid(&"sidra: foo isn't bar".to_string());
+        assert!(brain.respond(&"bar".to_string()).is_none());
     }
 
     #[test]
     fn ids_non_factoid_creation() {
+        let brain = Brain::new("sidra".to_owned());
         assert!(
-            !creates_factoid(&"bot_name".to_string(), &"a is b".to_string()),
+            !brain.creates_factoid(&"a is b".to_string()),
             "I wasn't addressed, this shouldn't create a factoid"
         );
 
         assert!(
-            !creates_factoid(&"bot_name".to_string(), &"bot_name: a foo b".to_string()),
+            !brain.creates_factoid(&"bot_name: a foo b".to_string()),
             "None of my verbs were present, this shouldn't create a factoid"
+        );
+
+        assert!(
+            !brain.creates_factoid(&"other_name: a is b".to_string()),
+            "Someone else was addressed, this shouldn't create a factoid"
         );
     }
 }
