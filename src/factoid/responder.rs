@@ -67,11 +67,11 @@ impl FactoidResponder {
 
 impl Responder for FactoidResponder {
     fn respond(&self, input: &String) -> Option<String> {
-        return if input == &self.key {
+        if input == &self.key {
             Some(self.val.to_owned())
         } else {
             None
-        };
+        }
     }
 }
 
@@ -80,21 +80,21 @@ pub struct SimpleResponder {
 }
 impl Responder for SimpleResponder {
     fn respond(&self, input: &String) -> Option<String> {
-        return if is_extension(&self.base.to_string(), input) {
+        if is_extension(&self.base.to_string(), input) {
             Some(self.base.to_owned())
         } else {
             None
-        };
+        }
     }
 }
 
 pub struct GoblinResponder {}
 impl Responder for GoblinResponder {
     fn respond(&self, input: &String) -> Option<String> {
-        return if input.contains("goblin") {
+        if input.contains("goblin") {
             Some("MEOW!".to_string())
         } else {
             None
-        };
+        }
     }
 }
