@@ -28,8 +28,8 @@ fn main() {
 
     let mut ratelimit = ratelimit::Builder::new()
         .capacity(10) // number of tokens the bucket will hold
-        .quantum(5) // add five tokens per interval
-        .interval(Duration::new(30, 0)) // add `quantum` tokens every 30 seconds
+        .quantum(1) // add five tokens per interval
+        .interval(Duration::new(5, 0)) // add `quantum` tokens every 30 seconds
         .build();
 
     let mut handle = ratelimit.make_handle();
@@ -55,16 +55,15 @@ fn connection_handler(
     // And here we can do whatever we want with the messages.
     if let Command::PRIVMSG(ref target, ref msg) = message.command {
         println!("{}", msg);
-        match handle.try_wait() {
-            Ok(()) => {
-                if let Some(resp) = brain.respond(msg) {
+        if let Some(resp) = brain.respond(msg) {
+            match handle.try_wait() {
+                Ok(()) => {
                     client
                         .send_privmsg(message.response_target().unwrap_or(target), resp)
                         .unwrap();
-                };
+                }
+                _ => (), // If out of tokens, just skip it
             }
-
-            _ => (), // If out of tokens, just skip it
         }
     }
 }
