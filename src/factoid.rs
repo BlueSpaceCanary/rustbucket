@@ -36,9 +36,7 @@ impl Brain {
         }
 
         // Returns None if respond() gave back an empty vec
-        self.responders
-            .respond(input)
-            .choose(&mut self.rng)
+        self.responders.respond(input).choose(&mut self.rng)
     }
 
     pub fn register_responder<T: 'static + Responder>(&mut self, responder: T) {
@@ -75,8 +73,7 @@ pub trait KnowsFactoids {
 // TODO strip whitespass + punctuassion
 impl KnowsFactoids for Brain {
     fn learn_factoid(&mut self, factoid: Factoid) -> Option<String> {
-        let factoid_resp =
-            responder::FactoidResponder::new(&factoid.key, &factoid.value);
+        let factoid_resp = responder::FactoidResponder::new(&factoid.key, &factoid.value);
         self.register_responder(factoid_resp);
 
         Some(format!(
@@ -104,7 +101,7 @@ impl KnowsFactoids for Brain {
                         // the key and the predicate
                         key: &s[..key_len - 1],
                         pred: &s[key_len..][..predicate_len],
-                        value: &s[key_len + 1 + predicate_len..]
+                        value: &s[key_len + 1 + predicate_len..],
                     });
                 } else if part == "are" {
                     predicate_len = 3;
@@ -113,7 +110,7 @@ impl KnowsFactoids for Brain {
                         // the key and the predicate
                         key: &s[..key_len - 1],
                         pred: &s[key_len..][..predicate_len],
-                        value: &s[key_len + 1 + predicate_len..]
+                        value: &s[key_len + 1 + predicate_len..],
                     });
                 } else {
                     key_len += part.len();
