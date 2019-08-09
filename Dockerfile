@@ -30,4 +30,4 @@ FROM alpine
 COPY --from=build /rustbucket/target/release/rustbucket .
 
 # set the startup command to run your binary
-CMD ["./rustbucket"]
+CMD ["ls"]
