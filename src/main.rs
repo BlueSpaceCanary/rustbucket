@@ -43,11 +43,10 @@ fn connection_handler(
     // And here we can do whatever we want with the messages.
     if let Command::PRIVMSG(ref target, ref msg) = message.command {
         println!("{}", msg);
-        match brain.respond(msg) {
-            Some(s) => client
-                .send_privmsg(message.response_target().unwrap_or(target), s)
-                .unwrap(),
-            None => (),
+        if let Some(resp) = brain.respond(msg) {
+            client
+                .send_privmsg(message.response_target().unwrap_or(target), resp)
+                .unwrap();
         }
     }
 }
