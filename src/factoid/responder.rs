@@ -18,7 +18,10 @@ impl Responders {
     }
 
     pub fn respond(&self, input: &str) -> Vec<String> {
-        self.responders.iter().filter_map(|resp| resp.respond(input)).collect()
+        self.responders
+            .iter()
+            .filter_map(|resp| resp.respond(input))
+            .collect()
     }
 
     // Add some silly nonsense
@@ -38,10 +41,7 @@ impl Responders {
 pub fn test_default_responders() {
     let resp = Responders::default();
     assert_eq!(resp.respond(&"awoo"), vec!("awoo"));
-    assert_eq!(
-        resp.respond(&"look, a goblin!"),
-        vec!("MEOW!")
-    );
+    assert_eq!(resp.respond(&"look, a goblin!"), vec!("MEOW!"));
 }
 
 pub trait Responder {
@@ -54,7 +54,10 @@ pub struct FactoidResponder {
 }
 impl FactoidResponder {
     pub fn new(key: &str, val: &str) -> FactoidResponder {
-        FactoidResponder { key: key.to_owned(), val: val.to_owned() }
+        FactoidResponder {
+            key: key.to_owned(),
+            val: val.to_owned(),
+        }
     }
 }
 

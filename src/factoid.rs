@@ -79,13 +79,14 @@ impl KnowsFactoids for Brain {
         let full_key = k.join(" ");
         let full_val = v[1..].join(" ");
 
-        let factoid_resp = responder::FactoidResponder::new(full_key.clone().as_str(), full_val.clone().as_str());
+        let factoid_resp =
+            responder::FactoidResponder::new(full_key.clone().as_str(), full_val.clone().as_str());
         self.register_responder(factoid_resp);
 
         return Some(format!(
             "Ok, now I know that {} {} {}",
-            full_key, v[0], full_val)
-        );
+            full_key, v[0], full_val
+        ));
     }
 
     fn creates_factoid(&self, s: &str) -> bool {
