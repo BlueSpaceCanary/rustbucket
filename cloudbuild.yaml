@@ -1,0 +1,7 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/irc-246305/rustbucket:latest']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/irc-246305/rustbucket', '--cache-from', 'gcr.io/irc-246305/rustbucket:latest', '.']
+
+images: ['gcr.io/irc-246305/rustbucket']
