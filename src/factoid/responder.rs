@@ -18,14 +18,7 @@ impl Responders {
     }
 
     pub fn respond(&self, input: &str) -> Vec<String> {
-        let mut outvec = Vec::new();
-        for resp in &self.responders {
-            if let Some(out) = resp.respond(input) {
-                outvec.push(out);
-            }
-        }
-
-        outvec
+        self.responders.iter().filter_map(|resp| resp.respond(input)).collect()
     }
 
     // Add some silly nonsense
