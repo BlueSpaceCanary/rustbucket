@@ -1,7 +1,7 @@
 use std::iter::Peekable;
 
 // e.g. awoo -> awooooo or meow -> meoooow
-pub fn is_extension(base: &String, candidate: &String) -> bool {
+pub fn is_extension(base: &str, candidate: &str) -> bool {
     if base.len() == 0 && candidate.len() == 0 {
         return true;
     } else if base.len() == 0 && candidate.len() > 0 {
@@ -55,15 +55,15 @@ pub fn is_extension(base: &String, candidate: &String) -> bool {
 
 #[test]
 pub fn test_is_extension() {
-    assert!(is_extension(&"awoo".to_string(), &"awoo".to_string()));
-    assert!(is_extension(&"awoo".to_string(), &"awooo".to_string()));
-    assert!(is_extension(&"awoo".to_string(), &"aawoo".to_string()));
-    assert!(is_extension(&"awoo".to_string(), &"awwoo".to_string()));
-    assert!(!is_extension(&"awoo".to_string(), &"awo".to_string()));
-    assert!(!is_extension(&"awwo".to_string(), &"awo".to_string()));
-    assert!(!is_extension(&"awoo".to_string(), &"ao".to_string()));
-    assert!(!is_extension(&"awoo".to_string(), &"aowo".to_string()));
-    assert!(!is_extension(&"awoo".to_string(), &"aw0o".to_string()));
+    assert!(is_extension(&"awoo", &"awoo"));
+    assert!(is_extension(&"awoo", &"awooo"));
+    assert!(is_extension(&"awoo", &"aawoo"));
+    assert!(is_extension(&"awoo", &"awwoo"));
+    assert!(!is_extension(&"awoo", &"awo"));
+    assert!(!is_extension(&"awwo", &"awo"));
+    assert!(!is_extension(&"awoo", &"ao"));
+    assert!(!is_extension(&"awoo", &"aowo"));
+    assert!(!is_extension(&"awoo", &"aw0o"));
 }
 
 fn co_fast_forward<I, T>(i1: &mut Peekable<I>, h1: T, i2: &mut Peekable<I>, h2: T)

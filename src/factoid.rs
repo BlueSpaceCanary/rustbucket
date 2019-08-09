@@ -30,7 +30,7 @@ impl Brain {
         self.rng = XorShiftRng::seed_from_u64(seed)
     }
 
-    pub fn respond(&mut self, input: &String) -> Option<String> {
+    pub fn respond(&mut self, input: &str) -> Option<String> {
         if self.creates_factoid(input) {
             return self.create_factoid(input);
         }
@@ -46,20 +46,21 @@ impl Brain {
         self.responders.register_responder(responder)
     }
 
-    fn addressed(&self, input: &String) -> bool {
+    fn addressed(&self, input: &str) -> bool {
         input.starts_with((self.name.to_owned() + ":").as_str())
     }
 }
 
 pub trait KnowsFactoids {
-    fn creates_factoid(&self, _: &String) -> bool;
-    fn create_factoid(&mut self, _: &String) -> Option<String>;
+    fn creates_factoid(&self, _: &str) -> bool;
+    fn create_factoid(&mut self, _: &str) -> Option<String>;
 }
 
 // TODO strip whitespass + punctuassion
 impl KnowsFactoids for Brain {
-    fn create_factoid(&mut self, s: &String) -> Option<String> {
+    fn create_factoid(&mut self, s: &str) -> Option<String> {
         // Drop name:
+        let s = s.to_string();
         let name_index = s.find(":").unwrap();
         let cleaned_string = s.clone().split_off(name_index + 1);
 
@@ -78,16 +79,16 @@ impl KnowsFactoids for Brain {
         let full_key = k.join(" ");
         let full_val = v[1..].join(" ");
 
-        let factoid_resp = responder::FactoidResponder::new(full_key.clone(), full_val.clone());
+        let factoid_resp = responder::FactoidResponder::new(full_key.clone().as_str(), full_val.clone().as_str());
         self.register_responder(factoid_resp);
 
         return Some(format!(
             "Ok, now I know that {} {} {}",
-            full_key, v[0], full_val
-        ));
+            full_key, v[0], full_val)
+        );
     }
 
-    fn creates_factoid(&self, s: &String) -> bool {
+    fn creates_factoid(&self, s: &str) -> bool {
         self.addressed(s) && (s.contains(" is ") || s.contains(" are "))
     }
 }
@@ -99,8 +100,8 @@ mod tests {
     #[test]
     fn can_create_factoid() {
         let mut brain = Brain::new("sidra".to_owned());
-        brain.create_factoid(&"sidra: foo is bar".to_string());
-        assert_eq!(brain.respond(&"foo".to_string()), Some("bar".to_string()));
+        brain.create_factoid(&"sidra: foo is bar");
+        assert_eq!(brain.respond("foo"), Some("bar".to_string()));
     }
 
     #[test]
@@ -113,19 +114,19 @@ mod tests {
         brain.create_factoid(&"sidra: foo is bar".to_string());
         brain.create_factoid(&"sidra: foo is zip".to_string());
 
-        assert_eq!(brain.respond(&"foo".to_string()), Some("bar".to_string()));
+        assert_eq!(brain.respond("foo"), Some("bar".to_string()));
 
         // Set arbitrarily to make the test work
         brain.set_rng_seed(69);
 
-        assert_eq!(brain.respond(&"foo".to_string()), Some("zip".to_string()),);
+        assert_eq!(brain.respond("foo"), Some("zip".to_string()));
     }
 
     #[test]
     fn no_nonfactoid_retrieval() {
         let mut brain = Brain::new("sidra".to_owned());
         brain.create_factoid(&"sidra: foo isn't bar".to_string());
-        assert!(brain.respond(&"bar".to_string()).is_none());
+        assert!(brain.respond("bar").is_none());
     }
 
     #[test]
