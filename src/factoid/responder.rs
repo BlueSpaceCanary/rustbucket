@@ -17,15 +17,11 @@ impl Responders {
         self.responders.push(Box::new(responder));
     }
 
-    pub fn respond(&self, input: &String) -> Vec<String> {
-        let mut outvec = Vec::new();
-        for resp in &self.responders {
-            if let Some(out) = resp.respond(input) {
-                outvec.push(out);
-            }
-        }
-
-        outvec
+    pub fn respond(&self, input: &str) -> Vec<String> {
+        self.responders
+            .iter()
+            .filter_map(|resp| resp.respond(input))
+            .collect()
     }
 
     // Add some silly nonsense
@@ -44,15 +40,12 @@ impl Responders {
 #[test]
 pub fn test_default_responders() {
     let resp = Responders::default();
-    assert_eq!(resp.respond(&"awoo".to_string()), vec!("awoo".to_string()));
-    assert_eq!(
-        resp.respond(&"look, a goblin!".to_string()),
-        vec!("MEOW!".to_string())
-    );
+    assert_eq!(resp.respond(&"awoo"), vec!("awoo"));
+    assert_eq!(resp.respond(&"look, a goblin!"), vec!("MEOW!"));
 }
 
 pub trait Responder {
-    fn respond(&self, _: &String) -> Option<String>;
+    fn respond(&self, _: &str) -> Option<String>;
 }
 
 pub struct FactoidResponder {
@@ -60,15 +53,18 @@ pub struct FactoidResponder {
     val: String,
 }
 impl FactoidResponder {
-    pub fn new(key: String, val: String) -> FactoidResponder {
-        FactoidResponder { key: key, val: val }
+    pub fn new(key: &str, val: &str) -> FactoidResponder {
+        FactoidResponder {
+            key: key.to_owned(),
+            val: val.to_owned(),
+        }
     }
 }
 
 impl Responder for FactoidResponder {
-    fn respond(&self, input: &String) -> Option<String> {
-        if input == &self.key {
-            Some(self.val.to_owned())
+    fn respond(&self, input: &str) -> Option<String> {
+        if input == self.key.as_str() {
+            Some(self.val.clone())
         } else {
             None
         }
@@ -79,8 +75,8 @@ pub struct SimpleResponder {
     base: &'static str,
 }
 impl Responder for SimpleResponder {
-    fn respond(&self, input: &String) -> Option<String> {
-        if is_extension(&self.base.to_string(), input) {
+    fn respond(&self, input: &str) -> Option<String> {
+        if is_extension(self.base, input) {
             Some(self.base.to_owned())
         } else {
             None
@@ -90,7 +86,7 @@ impl Responder for SimpleResponder {
 
 pub struct GoblinResponder {}
 impl Responder for GoblinResponder {
-    fn respond(&self, input: &String) -> Option<String> {
+    fn respond(&self, input: &str) -> Option<String> {
         if input.contains("goblin") {
             Some("MEOW!".to_string())
         } else {

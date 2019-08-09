@@ -27,9 +27,9 @@ fn main() {
     client.identify().unwrap();
 
     let mut ratelimit = ratelimit::Builder::new()
-        .capacity(10) //number of tokens the bucket will hold
-        .quantum(5) //add five tokens per interval
-        .interval(Duration::new(30, 0)) //add quantum tokens every 30 seconds
+        .capacity(10) // number of tokens the bucket will hold
+        .quantum(5) // add five tokens per interval
+        .interval(Duration::new(30, 0)) // add `quantum` tokens every 30 seconds
         .build();
 
     let mut handle = ratelimit.make_handle();
@@ -57,13 +57,13 @@ fn connection_handler(
         println!("{}", msg);
         match handle.try_wait() {
             Ok(()) => {
-                match brain.respond(msg) {
-                    Some(s) => client
-                        .send_privmsg(message.response_target().unwrap_or(target), s)
-                        .unwrap(),
-                    _ => (),
+                if let Some(resp) = brain.respond(msg) {
+                    client
+                        .send_privmsg(message.response_target().unwrap_or(target), resp)
+                        .unwrap();
                 };
             }
+
             _ => (), // If out of tokens, just skip it
         }
     }
