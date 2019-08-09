@@ -31,14 +31,13 @@ impl Brain {
     }
 
     pub fn respond(&mut self, input: &str) -> Option<String> {
-        if self.creates_factoid(input) {
-            return self.create_factoid(input);
+        if let Some(factoid) = self.creates_factoid(input) {
+            return self.learn_factoid(factoid);
         }
 
         // Returns None if respond() gave back an empty vec
         self.responders
             .respond(input)
-            .into_iter()
             .choose(&mut self.rng)
     }
 
@@ -118,7 +117,7 @@ mod tests {
         assert_eq!(brain.respond("foo"), Some("bar".to_string()));
 
         // Set arbitrarily to make the test work
-        brain.set_rng_seed(69);
+        brain.set_rng_seed(696969);
 
         assert_eq!(brain.respond("foo"), Some("zip".to_string()));
     }
