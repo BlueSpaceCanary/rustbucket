@@ -5,7 +5,7 @@ MAINTAINER bluespacecanary
 
 # create a new empty shell project
 RUN USER=root cargo new --bin rustbucket
-WORKDIR /usr/src/rustbucket
+WORKDIR /rustbucket
 
 # copy over your manifests
 COPY ./Cargo.lock ./Cargo.lock
@@ -27,7 +27,7 @@ RUN cargo build --release
 FROM alpine
 
 # copy the build artifact from the build stage
-COPY --from=build /usr/src/rustbucket/target/release/rustbucket .
+COPY --from=build /rustbucket/target/release/rustbucket .
 
 # set the startup command to run your binary
 CMD ["./rustbucket"]
