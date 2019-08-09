@@ -4,7 +4,9 @@ FROM rust:1.36 as build
 MAINTAINER bluespacecanary
 
 # create a new empty shell project
+RUN pwd
 RUN USER=root cargo new --bin rustbucket
+RUN ls
 WORKDIR /rustbucket
 
 # copy over your manifests
