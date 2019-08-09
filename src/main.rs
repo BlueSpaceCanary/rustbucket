@@ -1,10 +1,8 @@
 extern crate irc;
-extern crate rand;
 
 mod factoid;
 
 use crate::factoid::Brain;
-use crate::factoid::FactoidKnowledge;
 use irc::client::prelude::*;
 use std::sync::{Arc, Mutex};
 
@@ -37,42 +35,17 @@ fn main() {
 }
 
 fn connection_handler(
-    config: Config,
+    _config: Config,
     client: &IrcClient,
     message: irc::proto::Message,
     brain: &mut Brain,
 ) {
-    let name = config.nickname.clone().unwrap();
-
     // And here we can do whatever we want with the messages.
     if let Command::PRIVMSG(ref target, ref msg) = message.command {
         println!("{}", msg);
-        if factoid::is_awoo(msg) {
+        if let Some(resp) = brain.respond(msg) {
             client
-                .send_privmsg(message.response_target().unwrap_or(target), msg)
-                .unwrap();
-        } else if factoid::is_meow(msg) {
-            client
-                .send_privmsg(message.response_target().unwrap_or(target), msg)
-                .unwrap();
-        } else if factoid::creates_factoid(&name, &msg) {
-            match brain.create_factoid(msg.to_string()) {
-                Ok(_) => {
-                    println!("Added fact!");
-                    client
-                        .send_privmsg(message.response_target().unwrap_or(target), &"OK!")
-                        .unwrap();
-                }
-                Err(_e) => panic!("AHHHH"),
-            }
-        } else if let Some(v) = brain.get_factoid(&msg) {
-            println!("hi!");
-            client
-                .send_privmsg(message.response_target().unwrap_or(target), &v)
-                .unwrap();
-        } else if factoid::goblin(msg) {
-            client
-                .send_privmsg(message.response_target().unwrap_or(target), "MIAOW!")
+                .send_privmsg(message.response_target().unwrap_or(target), resp)
                 .unwrap();
         }
     }
