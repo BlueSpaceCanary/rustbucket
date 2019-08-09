@@ -1,4 +1,5 @@
 use super::util;
+use super::Factoid;
 use std::boxed::Box;
 use util::is_extension;
 
@@ -51,26 +52,36 @@ pub trait Responder {
 }
 
 pub struct FactoidResponder {
-    key: String,
-    val: String,
+    factoid: Factoid,
 }
 impl FactoidResponder {
-    pub fn new(key: &str, val: &str) -> FactoidResponder {
-        FactoidResponder {
-            key: key.to_owned(),
-            val: val.to_owned(),
-        }
+    pub fn new(factoid: Factoid) -> FactoidResponder {
+        FactoidResponder { factoid }
     }
 }
 
 impl Responder for FactoidResponder {
     fn respond(&self, input: &str) -> Option<String> {
-        if input == self.key.as_str() {
-            Some(self.val.clone())
+        if input == self.factoid.key {
+            Some(self.factoid.value.to_string())
         } else {
             None
         }
     }
+}
+
+#[test]
+fn test_factoids_respond() {
+    let factoid = Factoid {
+        key: "spinch the robot".to_string(),
+        pred: "is".to_string(),
+        value: "beautiful".to_string(),
+    };
+    let resper = FactoidResponder::new(factoid);
+    assert_eq!(
+        Some("beautiful".to_string()),
+        resper.respond(&"spinch the robot")
+    );
 }
 
 pub struct SimpleResponder {

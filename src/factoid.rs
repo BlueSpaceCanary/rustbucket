@@ -31,12 +31,9 @@ impl Brain {
     }
 
     pub fn respond(&mut self, input: &str) -> Option<String> {
-        if let Some(factoid) = self.creates_factoid(input) {
-            return self.learn_factoid(factoid);
-        }
-
-        // Returns None if respond() gave back an empty vec
-        self.responders.respond(input).choose(&mut self.rng)
+        self.create_factoid(input).or_else(||
+           // Returns None if respond() gave back an empty vec
+              self.responders.respond(input).choose(&mut self.rng))
     }
 
     pub fn register_responder<T: 'static + Responder>(&mut self, responder: T) {
@@ -55,34 +52,34 @@ impl Brain {
     }
 }
 
-pub struct Factoid<'a> {
-    pub key: &'a str,
-    pub pred: &'a str,
-    pub value: &'a str,
+pub struct Factoid {
+    pub key: String,
+    pub pred: String,
+    pub value: String,
 }
 
 pub trait KnowsFactoids {
-    fn creates_factoid<'a, 'b: 'a>(&'a self, _: &'b str) -> Option<Factoid<'b>>;
+    fn creates_factoid(&self, _: &str) -> Option<Factoid>;
     fn create_factoid(&mut self, message: &str) -> Option<String> {
         self.creates_factoid(message)
-            .and_then(|factoid| self.learn_factoid(factoid))
+            .and_then(|factoid| Some(self.learn_factoid(factoid)))
     }
-    fn learn_factoid(&mut self, _: Factoid) -> Option<String>;
+    fn learn_factoid(&mut self, _: Factoid) -> String;
 }
 
 // TODO strip whitespass + punctuassion
 impl KnowsFactoids for Brain {
-    fn learn_factoid(&mut self, factoid: Factoid) -> Option<String> {
-        let factoid_resp = responder::FactoidResponder::new(&factoid.key, &factoid.value);
-        self.register_responder(factoid_resp);
-
-        Some(format!(
+    fn learn_factoid(&mut self, factoid: Factoid) -> String {
+        let out = format!(
             "Ok, now I know that {} {} {}",
-            &factoid.key, &factoid.pred, &factoid.value
-        ))
+            factoid.key, factoid.pred, factoid.value
+        );
+        let factoid_resp = responder::FactoidResponder::new(factoid);
+        self.register_responder(factoid_resp);
+        out
     }
 
-    fn creates_factoid<'a, 'b: 'a>(&'a self, s: &'b str) -> Option<Factoid<'b>> {
+    fn creates_factoid(&self, s: &str) -> Option<Factoid> {
         if let Some(s) = self.addressed(s) {
             let predicate_len: usize;
             let mut key_len = 0usize;
@@ -99,18 +96,18 @@ impl KnowsFactoids for Brain {
                     return Some(Factoid {
                         // back up by 1 because we don't count the space between the last word of
                         // the key and the predicate
-                        key: &s[..key_len - 1],
-                        pred: &s[key_len..][..predicate_len],
-                        value: &s[key_len + 1 + predicate_len..],
+                        key: s[..key_len - 1].to_owned(),
+                        pred: s[key_len..][..predicate_len].to_owned(),
+                        value: s[key_len + 1 + predicate_len..].to_owned(),
                     });
                 } else if part == "are" {
                     predicate_len = 3;
                     return Some(Factoid {
                         // back up by 1 because we don't count the space between the last word of
                         // the key and the predicate
-                        key: &s[..key_len - 1],
-                        pred: &s[key_len..][..predicate_len],
-                        value: &s[key_len + 1 + predicate_len..],
+                        key: s[..key_len - 1].to_owned(),
+                        pred: s[key_len..][..predicate_len].to_owned(),
+                        value: s[key_len + 1 + predicate_len..].to_owned(),
                     });
                 } else {
                     key_len += part.len();
