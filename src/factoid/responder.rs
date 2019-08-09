@@ -17,11 +17,10 @@ impl Responders {
         self.responders.push(Box::new(responder));
     }
 
-    pub fn respond(&self, input: &str) -> Vec<String> {
+    pub fn respond<'a, 'b: 'a>(&'a self, input: &'b str) -> impl Iterator<Item=String> + 'a {
         self.responders
             .iter()
-            .filter_map(|resp| resp.respond(input))
-            .collect()
+            .filter_map(move |resp| resp.respond(input))
     }
 
     // Add some silly nonsense
@@ -40,8 +39,8 @@ impl Responders {
 #[test]
 pub fn test_default_responders() {
     let resp = Responders::default();
-    assert_eq!(resp.respond(&"awoo"), vec!("awoo"));
-    assert_eq!(resp.respond(&"look, a goblin!"), vec!("MEOW!"));
+    assert_eq!(resp.respond(&"awoo").collect::<Vec<String>>(), vec!("awoo"));
+    assert_eq!(resp.respond(&"look, a goblin!").collect::<Vec<String>>(), vec!("MEOW!"));
 }
 
 pub trait Responder {

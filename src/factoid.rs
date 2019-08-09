@@ -31,14 +31,13 @@ impl Brain {
     }
 
     pub fn respond(&mut self, input: &str) -> Option<String> {
-        if self.creates_factoid(input) {
-            return self.create_factoid(input);
+        if let Some(factoid) = self.creates_factoid(input) {
+            return self.learn_factoid(factoid);
         }
 
         // Returns None if respond() gave back an empty vec
         self.responders
             .respond(input)
-            .into_iter()
             .choose(&mut self.rng)
     }
 
@@ -46,51 +45,84 @@ impl Brain {
         self.responders.register_responder(responder)
     }
 
-    fn addressed(&self, input: &str) -> bool {
-        input.starts_with((self.name.to_owned() + ":").as_str())
+    fn addressed<'a>(&self, input: &'a str) -> Option<&'a str> {
+        if input.starts_with(&self.name) {
+            let tail = &input[self.name.len()..];
+            if tail.starts_with(": ") {
+                return Some(&tail[2..]);
+            }
+        }
+
+        None
     }
 }
 
+pub struct Factoid<'a> {
+    pub key: &'a str,
+    pub pred: &'a str,
+    pub value: &'a str,
+}
+
 pub trait KnowsFactoids {
-    fn creates_factoid(&self, _: &str) -> bool;
-    fn create_factoid(&mut self, _: &str) -> Option<String>;
+    fn creates_factoid<'a, 'b: 'a>(&'a self, _: &'b str) -> Option<Factoid<'b>>;
+    fn create_factoid(&mut self, message: &str) -> Option<String> {
+        self.creates_factoid(message)
+            .and_then(|factoid| self.learn_factoid(factoid))
+    }
+    fn learn_factoid(&mut self, _: Factoid) -> Option<String>;
 }
 
 // TODO strip whitespass + punctuassion
 impl KnowsFactoids for Brain {
-    fn create_factoid(&mut self, s: &str) -> Option<String> {
-        // Drop name:
-        let s = s.to_string();
-        let name_index = s.find(":").unwrap();
-        let cleaned_string = s.clone().split_off(name_index + 1);
-
-        let iter = cleaned_string.split_whitespace();
-        let index = match iter
-            .clone()
-            .position(|pivot| pivot == "is" || pivot == "are")
-        {
-            Some(i) => i,
-            None => return None, // No verb here
-        };
-
-        let tmp: Vec<&str> = iter.collect();
-        let (k, v) = tmp.split_at(index);
-
-        let full_key = k.join(" ");
-        let full_val = v[1..].join(" ");
-
+    fn learn_factoid(&mut self, factoid: Factoid) -> Option<String> {
         let factoid_resp =
-            responder::FactoidResponder::new(full_key.clone().as_str(), full_val.clone().as_str());
+            responder::FactoidResponder::new(&factoid.key, &factoid.value);
         self.register_responder(factoid_resp);
 
-        return Some(format!(
+        Some(format!(
             "Ok, now I know that {} {} {}",
-            full_key, v[0], full_val
-        ));
+            &factoid.key, &factoid.pred, &factoid.value
+        ))
     }
 
-    fn creates_factoid(&self, s: &str) -> bool {
-        self.addressed(s) && (s.contains(" is ") || s.contains(" are "))
+    fn creates_factoid<'a, 'b: 'a>(&'a self, s: &'b str) -> Option<Factoid<'b>> {
+        if let Some(s) = self.addressed(s) {
+            let predicate_len: usize;
+            let mut key_len = 0usize;
+
+            let mut count_space = false;
+
+            for part in s.split_whitespace() {
+                if count_space {
+                    key_len += 1;
+                }
+
+                if part == "is" {
+                    predicate_len = 2;
+                    return Some(Factoid {
+                        // back up by 1 because we don't count the space between the last word of
+                        // the key and the predicate
+                        key: &s[..key_len - 1],
+                        pred: &s[key_len..][..predicate_len],
+                        value: &s[key_len + 1 + predicate_len..]
+                    });
+                } else if part == "are" {
+                    predicate_len = 3;
+                    return Some(Factoid {
+                        // back up by 1 because we don't count the space between the last word of
+                        // the key and the predicate
+                        key: &s[..key_len - 1],
+                        pred: &s[key_len..][..predicate_len],
+                        value: &s[key_len + 1 + predicate_len..]
+                    });
+                } else {
+                    key_len += part.len();
+                    count_space = true;
+                }
+            }
+        }
+
+        None
     }
 }
 
@@ -118,7 +150,7 @@ mod tests {
         assert_eq!(brain.respond("foo"), Some("bar".to_string()));
 
         // Set arbitrarily to make the test work
-        brain.set_rng_seed(69);
+        brain.set_rng_seed(696969);
 
         assert_eq!(brain.respond("foo"), Some("zip".to_string()));
     }
@@ -134,17 +166,17 @@ mod tests {
     fn ids_non_factoid_creation() {
         let brain = Brain::new("sidra".to_owned());
         assert!(
-            !brain.creates_factoid(&"a is b".to_string()),
+            brain.creates_factoid("a is b").is_none(),
             "I wasn't addressed, this shouldn't create a factoid"
         );
 
         assert!(
-            !brain.creates_factoid(&"bot_name: a foo b".to_string()),
+            brain.creates_factoid("bot_name: a foo b").is_none(),
             "None of my verbs were present, this shouldn't create a factoid"
         );
 
         assert!(
-            !brain.creates_factoid(&"other_name: a is b".to_string()),
+            brain.creates_factoid("other_name: a is b").is_none(),
             "Someone else was addressed, this shouldn't create a factoid"
         );
     }
