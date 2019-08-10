@@ -1,4 +1,5 @@
 extern crate irc;
+extern crate openssl_probe;
 extern crate ratelimit;
 
 mod factoid;
@@ -11,6 +12,7 @@ use std::time::Duration;
 
 fn main() {
     // We can also load the Config at runtime via Config::load("path/to/config.toml")
+    openssl_probe::init_ssl_cert_env_vars();
     let config = Config {
         nickname: Some("awoo".to_owned()),
         server: Some("irc.qrimes.club".to_owned()),

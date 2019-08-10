@@ -10,3 +10,6 @@ rand = ""
 rand_xorshift = ""
 rand_core = ""
 ratelimit = "0.4"
+
+# certs &c
+openssl-probe = "0.1"
