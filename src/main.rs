@@ -1,6 +1,6 @@
 extern crate irc;
-extern crate ratelimit;
 extern crate openssl_probe;
+extern crate ratelimit;
 
 mod factoid;
 
