@@ -1,37 +1,35 @@
 # Based on http://whitfin.io/speeding-up-rust-docker-builds/
 # **************************** BUILD PHASE **************************
-FROM rust:1.36 as build
+FROM ekidd/rust-musl-builder as BUILD
 MAINTAINER bluespacecanary
 
 # create a new empty shell project
 RUN USER=root cargo new --bin rustbucket
-WORKDIR /rustbucket
+WORKDIR /home/rust/src/rustbucket
 
 # copy over your manifests
 COPY ./Cargo.lock ./Cargo.lock
 COPY ./Cargo.toml ./Cargo.toml
 
-run rustup target add x86_64-unknown-linux-musl
-run apt-get update
-run apt-get install -y musl-tools musl-dev libssl-dev
-
 # this build step will cache your dependencies
-RUN cargo build --release --target x86_64-unknown-linux-musl
+# Optimization to make it less annoying to tinker with cargo build
+RUN cargo fetch
+RUN cargo build --release
 RUN rm src/*.rs
 
 # copy your source tree
 COPY ./src ./src
 
 # build for release
-RUN rm ./target/release/deps/rustbucket*
-RUN cargo build --release --target x86_64-unknown-linux-musl
+RUN rm ./target/x86_64-unknown-linux-musl/release/deps/rustbucket*
+RUN cargo build --release
 
 # **************************** RUN PHASE **************************
 
-FROM alpine
+FROM alpine:latest
 
 # copy the build artifact from the build stage
-COPY --from=build /rustbucket/target/release/rustbucket .
+COPY --from=build /home/rust/src/rustbucket/target/x86_64-unknown-linux-musl/release/rustbucket .
 
 # set the startup command to run your binary
 ENTRYPOINT ["./rustbucket"]
