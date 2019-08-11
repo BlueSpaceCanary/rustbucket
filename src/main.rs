@@ -6,20 +6,31 @@ mod factoid;
 
 use crate::factoid::Brain;
 use irc::client::prelude::*;
+use std::env;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
 fn main() {
-    // We can also load the Config at runtime via Config::load("path/to/config.toml")
+    // Needed to make sure openssl works in alpine :/
     openssl_probe::init_ssl_cert_env_vars();
-    let config = Config {
-        nickname: Some("awoo".to_owned()),
-        server: Some("irc.qrimes.club".to_owned()),
-        channels: Some(vec!["#funposting".to_owned()]),
-        use_ssl: Some(true),
-        port: Some(6697),
-        ..Config::default()
+
+    let args: Vec<String> = env::args().collect();
+
+    let config = if let Some(config_path) = args.get(1) {
+        match Config::load(config_path) {
+            Ok(conf) => conf,
+            Err(e) => panic!("error parsing config: {:?}", e),
+        }
+    } else {
+        Config {
+            nickname: Some("awoo".to_owned()),
+            server: Some("irc.qrimes.club".to_owned()),
+            channels: Some(vec!["#funposting".to_owned()]),
+            use_ssl: Some(true),
+            port: Some(6697),
+            ..Config::default()
+        }
     };
 
     let cns = Arc::new(Mutex::new(Brain::new(config.nickname.clone().unwrap())));
