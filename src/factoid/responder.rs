@@ -41,6 +41,7 @@ impl Responders {
 pub fn test_default_responders() {
     let resp = Responders::default();
     assert_eq!(resp.respond(&"awoo").collect::<Vec<String>>(), vec!("awoo"));
+    assert_eq!(resp.respond(&"Miao").collect::<Vec<String>>(), vec!("Miao"));
     assert_eq!(
         resp.respond(&"look, a goblin!").collect::<Vec<String>>(),
         vec!("MEOW!")
@@ -90,7 +91,7 @@ pub struct SimpleResponder {
 impl Responder for SimpleResponder {
     fn respond(&self, input: &str) -> Option<String> {
         if is_extension(self.base, input) {
-            Some(self.base.to_owned())
+            Some(input.to_owned())
         } else {
             None
         }
