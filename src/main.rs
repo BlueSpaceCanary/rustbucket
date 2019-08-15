@@ -51,7 +51,7 @@ fn main() {
     reactor.register_client_with_handler(client, move |client, message| {
         let cns = Arc::clone(&cns);
         let mut brain = cns.lock().unwrap();
-        connection_handler(config.clone(), client, message, &mut *brain, &mut handle);
+        connection_handler(config.clone(), client, message, &mut *brain,&mut handle.clone());
         Ok(())
     });
 
@@ -65,17 +65,15 @@ fn connection_handler(
     brain: &mut Brain,
     handle: &mut ratelimit::Handle,
 ) {
+    let mut handle = handle.clone();
     // And here we can do whatever we want with the messages.
     if let Command::PRIVMSG(ref target, ref msg) = message.command {
         println!("{}", msg);
         if let Some(resp) = brain.respond(msg) {
-            match handle.try_wait() {
-                Ok(()) => {
-                    client
-                        .send_privmsg(message.response_target().unwrap_or(target), resp)
-                        .unwrap();
-                }
-                _ => (), // If out of tokens, just skip it
+            if handle.try_wait().is_ok() {
+                client
+                    .send_privmsg(message.response_target().unwrap_or(target), resp)
+                    .unwrap();
             }
         }
     }
