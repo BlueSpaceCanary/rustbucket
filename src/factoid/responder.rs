@@ -32,6 +32,7 @@ impl Responders {
         resps.register_responder(SimpleResponder { base: "miao" });
         resps.register_responder(SimpleResponder { base: "mrao" });
         resps.register_responder(SimpleResponder { base: "mraow" });
+        resps.register_responder(SimpleResponder { base: "miau" });
         resps.register_responder(GoblinResponder {});
         resps
     }
@@ -91,7 +92,7 @@ pub struct SimpleResponder {
 impl Responder for SimpleResponder {
     fn respond(&self, input: &str) -> Option<String> {
         if is_extension(self.base, input) {
-            Some(str.to_owned())
+            Some(input.to_owned())
         } else {
             None
         }
