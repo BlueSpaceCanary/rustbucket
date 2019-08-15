@@ -51,7 +51,13 @@ fn main() {
     reactor.register_client_with_handler(client, move |client, message| {
         let cns = Arc::clone(&cns);
         let mut brain = cns.lock().unwrap();
-        connection_handler(config.clone(), client, message, &mut *brain,&mut handle.clone());
+        connection_handler(
+            config.clone(),
+            client,
+            message,
+            &mut *brain,
+            &mut handle.clone(),
+        );
         Ok(())
     });
 
