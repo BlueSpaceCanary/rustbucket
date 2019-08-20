@@ -55,6 +55,7 @@ fn connection_handler(
     message: irc::proto::Message,
     brain: &mut Brain,
 ) {
+    let mut handle = handle.clone();
     // And here we can do whatever we want with the messages.
     if let Command::PRIVMSG(ref target, ref msg) = message.command {
         println!("{}", msg);
