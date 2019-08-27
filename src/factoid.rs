@@ -144,7 +144,7 @@ mod tests {
         assert_eq!(brain.respond("foo"), Some("bar".to_string()));
 
         // Set arbitrarily to make the test work
-        brain.set_rng_seed(696969);
+        brain.set_rng_seed(6969);
 
         assert_eq!(brain.respond("foo"), Some("zip".to_string()));
     }
