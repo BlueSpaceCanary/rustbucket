@@ -47,8 +47,11 @@ fn main() {
     });
 
     loop {
-        if let Err(irc::error::IrcError::PingTimeout) = reactor.run() {
+        let res = reactor.run();
+        if let Err(irc::error::IrcError::PingTimeout) = res {
             continue;
+        } else {
+            panic!("{:?}", res)
         }
     }
 }
