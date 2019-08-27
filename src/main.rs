@@ -46,7 +46,11 @@ fn main() {
         Ok(())
     });
 
-    reactor.run().unwrap();
+    while true {
+        if let Err(irc::error::IrcError::PingTimeout) = reactor.run() {
+            continue;
+        }
+    }
 }
 
 fn connection_handler(
