@@ -46,7 +46,13 @@ fn main() {
         Ok(())
     });
 
-    reactor.run().unwrap();
+    loop {
+        match reactor.run() {
+            Ok(()) => continue,
+            Err(irc::error::IrcError::PingTimeout) => continue,
+            Err(e) => panic!("{:?}"),
+        }
+    }
 }
 
 fn connection_handler(
