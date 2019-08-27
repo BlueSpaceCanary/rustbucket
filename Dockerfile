@@ -21,7 +21,6 @@ RUN rm src/*.rs
 COPY ./src ./src
 
 # build for release
-RUN rm ./target/x86_64-unknown-linux-musl/release/deps/rustbucket*
 RUN cargo build --release
 
 # **************************** RUN PHASE **************************
