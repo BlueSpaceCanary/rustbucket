@@ -46,7 +46,7 @@ fn main() {
         Ok(())
     });
 
-    while true {
+    loop {
         if let Err(irc::error::IrcError::PingTimeout) = reactor.run() {
             continue;
         }
