@@ -1,3 +1,3 @@
 steps:
-- name: 'gcr.io/kaniko-project/executor'
+- name: 'gcr.io/kaniko-project/executor:debug'
   args: ['--destination=gcr.io/irc-246305/rustbucket:$SHORT_SHA', '--cache=true', '--cache-ttl=12h']
