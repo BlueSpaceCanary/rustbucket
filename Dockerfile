@@ -1,7 +1,6 @@
 # Based on http://whitfin.io/speeding-up-rust-docker-builds/
 # **************************** BUILD PHASE **************************
-FROM ekidd/rust-musl-builder as BUILD
-MAINTAINER bluespacecanary
+FROM ekidd/rust-musl-builder:stable as BUILD
 
 # create a new empty shell project
 RUN USER=root cargo new --bin rustbucket
@@ -16,6 +15,8 @@ COPY ./Cargo.toml ./Cargo.toml
 RUN cargo fetch
 RUN cargo build --release
 RUN rm src/*.rs
+
+RUN ls
 
 # copy your source tree
 COPY ./src ./src/
