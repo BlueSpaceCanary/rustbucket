@@ -18,7 +18,7 @@ RUN cargo build --release
 RUN rm src/*.rs
 
 # copy your source tree
-COPY ./src ./src
+COPY ./src ./src/
 
 # build for release
 RUN cargo build --release
