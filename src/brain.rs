@@ -2,16 +2,43 @@ extern crate rand;
 extern crate rand_core;
 extern crate rand_xorshift;
 
+mod hippocampus;
 mod responder;
 mod util;
 
+use super::models::Factoid;
+use super::models::NewFactoid;
+use hippocampus::Hippocampus;
 use rand::prelude::IteratorRandom;
 use rand_core::SeedableRng;
 use rand_xorshift::XorShiftRng;
 use responder::Responder;
 use responder::Responders;
 
-pub struct Brain {
+// Wraps the Brain, handles the stateful external world
+pub struct Superego<T: Hippocampus = hippocampus::IdMemory> {
+    ego: Brain,
+    mem: T,
+}
+
+impl<T: Hippocampus> Superego<T> {
+    pub fn new(name: String) -> Self {
+        Superego {
+            ego: Brain::new(name),
+            mem: T::new(&"asdf"),
+        }
+    }
+
+    pub(crate) fn respond(&mut self, input: &str) -> Option<String> {
+        match self.create_factoid(input) {
+            Ok(Some(x)) => Some(x),
+            Ok(None) => self.ego.respond(input),
+            Err(x) => Some(x.to_string()),
+        }
+    }
+}
+
+struct Brain {
     name: String,
     rng: XorShiftRng,
     responders: responder::Responders,
@@ -31,9 +58,12 @@ impl Brain {
     }
 
     pub fn respond(&mut self, input: &str) -> Option<String> {
-        self.create_factoid(input).or_else(||
-           // Returns None if respond() gave back an empty vec
-              self.responders.respond(input).choose(&mut self.rng))
+        // Brain's KnowsFactoid won't error.
+        match self.create_factoid(input) {
+            Ok(Some(x)) => Some(x),
+            Ok(None) => self.responders.respond(input).choose(&mut self.rng),
+            Err(x) => Some(x.to_string()),
+        }
     }
 
     pub fn register_responder<T: 'static + Responder>(&mut self, responder: T) {
@@ -52,34 +82,50 @@ impl Brain {
     }
 }
 
-pub struct Factoid {
-    pub key: String,
-    pub pred: String,
-    pub value: String,
+pub trait KnowsFactoids {
+    fn creates_factoid(&self, _: &str) -> Option<NewFactoid>;
+    fn create_factoid(&mut self, message: &str) -> Result<Option<String>, &'static str> {
+        match self.creates_factoid(message) {
+            Some(x) => self.learn_factoid(x),
+            None => Ok(None),
+        }
+    }
+    fn learn_factoid(&mut self, _: NewFactoid) -> Result<Option<String>, &'static str>;
 }
 
-pub trait KnowsFactoids {
-    fn creates_factoid(&self, _: &str) -> Option<Factoid>;
-    fn create_factoid(&mut self, message: &str) -> Option<String> {
-        self.creates_factoid(message)
-            .and_then(|factoid| Some(self.learn_factoid(factoid)))
+impl<T: hippocampus::Hippocampus> KnowsFactoids for Superego<T> {
+    fn creates_factoid(&self, s: &str) -> Option<NewFactoid> {
+        self.ego.creates_factoid(s)
     }
-    fn learn_factoid(&mut self, _: Factoid) -> String;
+
+    fn learn_factoid(&mut self, factoid: NewFactoid) -> Result<Option<String>, &'static str> {
+        //TODO write to db
+        self.mem.learn(&factoid)?;
+        self.ego.learn_factoid(factoid)
+    }
 }
 
 // TODO strip whitespass + punctuassion
 impl KnowsFactoids for Brain {
-    fn learn_factoid(&mut self, factoid: Factoid) -> String {
+    fn learn_factoid(&mut self, factoid: NewFactoid) -> Result<Option<String>, &'static str> {
         let out = format!(
             "Ok, now I know that {} {} {}",
             factoid.key, factoid.pred, factoid.value
         );
+
+        let factoid = Factoid {
+            id: 0,
+            key: factoid.key,
+            pred: factoid.pred,
+            value: factoid.value,
+        };
+
         let factoid_resp = responder::FactoidResponder::new(factoid);
         self.register_responder(factoid_resp);
-        out
+        Ok(Some(out))
     }
 
-    fn creates_factoid(&self, s: &str) -> Option<Factoid> {
+    fn creates_factoid(&self, s: &str) -> Option<NewFactoid> {
         if let Some(s) = self.addressed(s) {
             let predicate_len: usize;
             let mut key_len = 0usize;
@@ -93,16 +139,17 @@ impl KnowsFactoids for Brain {
 
                 if part == "is" {
                     predicate_len = 2;
-                    return Some(Factoid {
-                        // back up by 1 because we don't count the space between the last word of
-                        // the key and the predicate
+                    return Some(NewFactoid {
+                        // back up by 1 because we don't count the
+                        // space between the last word of the key and
+                        // the predicate
                         key: s[..key_len - 1].to_owned(),
                         pred: s[key_len..][..predicate_len].to_owned(),
                         value: s[key_len + 1 + predicate_len..].to_owned(),
                     });
                 } else if part == "are" {
                     predicate_len = 3;
-                    return Some(Factoid {
+                    return Some(NewFactoid {
                         // back up by 1 because we don't count the space between the last word of
                         // the key and the predicate
                         key: s[..key_len - 1].to_owned(),
@@ -127,7 +174,7 @@ mod tests {
     #[test]
     fn can_create_factoid() {
         let mut brain = Brain::new("sidra".to_owned());
-        brain.create_factoid(&"sidra: foo is bar");
+        assert!(!brain.create_factoid(&"sidra: foo is bar").is_err());
         assert_eq!(brain.respond("foo"), Some("bar".to_string()));
     }
 
@@ -138,8 +185,12 @@ mod tests {
         // Set arbitrarily to make the test work
         brain.set_rng_seed(0);
 
-        brain.create_factoid(&"sidra: foo is bar".to_string());
-        brain.create_factoid(&"sidra: foo is zip".to_string());
+        assert!(!brain
+            .create_factoid(&"sidra: foo is bar".to_string())
+            .is_err());
+        assert!(!brain
+            .create_factoid(&"sidra: foo is zip".to_string())
+            .is_err());
 
         assert_eq!(brain.respond("foo"), Some("bar".to_string()));
 
@@ -152,7 +203,9 @@ mod tests {
     #[test]
     fn no_nonfactoid_retrieval() {
         let mut brain = Brain::new("sidra".to_owned());
-        brain.create_factoid(&"sidra: foo isn't bar".to_string());
+        assert!(!brain
+            .create_factoid(&"sidra: foo isn't bar".to_string())
+            .is_err());
         assert!(brain.respond("bar").is_none());
     }
 

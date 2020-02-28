@@ -1,3 +1,5 @@
+timeout: 1500s
 steps:
-- name: 'gcr.io/kaniko-project/executor:debug'
+- name: 'gcr.io/kaniko-project/executor'
   args: ['--destination=gcr.io/irc-246305/rustbucket:$SHORT_SHA', '--cache=true', '--cache-ttl=12h']
+  timeout: 1200s

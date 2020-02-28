@@ -1,7 +1,8 @@
+use super::hippocampus::Hippocampus;
 use super::util;
 use super::Factoid;
 use std::boxed::Box;
-use std::cmp::Ordering;
+
 use util::is_extension;
 
 pub struct Responders {
@@ -71,6 +72,7 @@ pub fn test_default_responders() {
 pub fn test_responder_priority() {
     let mut resp = Responders::default();
     resp.register_responder(FactoidResponder::new(Factoid {
+        id: 0,
         key: "awoo".to_string(),
         value: "dropped".to_string(),
         pred: "is".to_string(),
@@ -126,6 +128,7 @@ impl Responder for FactoidResponder {
 #[test]
 fn test_factoids_respond() {
     let factoid = Factoid {
+        id: 69,
         key: "spinch the robot".to_string(),
         pred: "is".to_string(),
         value: "beautiful".to_string(),

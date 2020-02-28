@@ -1,15 +1,18 @@
 extern crate irc;
 extern crate openssl_probe;
 extern crate ratelimit;
+#[macro_use]
+extern crate diesel;
+extern crate dotenv;
 
-mod factoid;
+mod brain;
+mod models;
+mod schema;
 
-use crate::factoid::Brain;
+use brain::Superego;
 use irc::client::prelude::*;
 use std::env;
 use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::Duration;
 
 fn main() {
     // Needed to make sure openssl works in alpine :/
@@ -33,7 +36,7 @@ fn main() {
         }
     };
 
-    let cns = Arc::new(Mutex::new(Brain::new(config.nickname.clone().unwrap())));
+    let cns = Arc::new(Mutex::new(Superego::new(config.nickname.clone().unwrap())));
 
     let mut reactor = IrcReactor::new().unwrap();
     let client = reactor.prepare_client_and_connect(&config).unwrap();
@@ -59,7 +62,7 @@ fn connection_handler(
     _config: Config,
     client: &IrcClient,
     message: irc::proto::Message,
-    brain: &mut Brain,
+    brain: &mut Superego,
 ) {
     // And here we can do whatever we want with the messages.
     if let Command::PRIVMSG(ref target, ref msg) = message.command {
