@@ -50,6 +50,7 @@ impl Responders {
         resps.register_responder(SimpleResponder { base: "mrao" });
         resps.register_responder(SimpleResponder { base: "mraow" });
         resps.register_responder(SimpleResponder { base: "miau" });
+        resps.register_responder(SimpleResponder { base: "subauwu" });
         resps.register_responder(GoblinResponder {});
         resps
     }
