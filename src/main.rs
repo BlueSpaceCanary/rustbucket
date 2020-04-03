@@ -53,7 +53,7 @@ fn main() {
 
         match reactor.run() {
             Ok(()) => continue,
-            Err(irc::error::IrcError::PingTimeout) =>  error! {"Ping timeout"}, // restart
+            Err(irc::error::IrcError::PingTimeout) => error! {"Ping timeout"}, // restart
             Err(e) => panic!("{:?}", e),
         }
     }
