@@ -5,6 +5,8 @@ authors = ["BlueSpaceCanary"]
 edition = "2018"
 
 [dependencies]
+log = "*"
+env_logger = "*"
 irc = "0.13"
 rand = ""
 rand_xorshift = ""
