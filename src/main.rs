@@ -36,23 +36,19 @@ fn main() {
         }
     };
 
-    let cns = Arc::new(Mutex::new(Superego::new(config.nickname.clone().unwrap())));
-
-    let mut reactor = IrcReactor::new().unwrap();
-    let client = reactor.prepare_client_and_connect(&config).unwrap();
-    client.identify().unwrap();
-
-    reactor.register_client_with_handler(client, move |client, message| {
-        let cns = Arc::clone(&cns);
-        let mut brain = cns.lock().unwrap();
-        connection_handler(config.clone(), client, message, &mut *brain);
-        Ok(())
-    });
-
+	let mut reactor = IrcReactor::new().unwrap();
     loop {
+		let config = config.clone();
+		let client = reactor.prepare_client_and_connect(&config).unwrap();
+		reactor.register_client_with_handler(client, move |client, message| {
+			let mut brain = Superego::new(config.nickname.clone().unwrap());
+			connection_handler(config.clone(), &client, message, &mut brain);
+			Ok(())
+		});
+
         match reactor.run() {
             Ok(()) => continue,
-            Err(irc::error::IrcError::PingTimeout) => continue,
+            Err(irc::error::IrcError::PingTimeout) => continue, // restart
             Err(e) => panic!("{:?}", e),
         }
     }
