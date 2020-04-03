@@ -36,15 +36,15 @@ fn main() {
         }
     };
 
-	let mut reactor = IrcReactor::new().unwrap();
+    let mut reactor = IrcReactor::new().unwrap();
     loop {
-		let config = config.clone();
-		let client = reactor.prepare_client_and_connect(&config).unwrap();
-		reactor.register_client_with_handler(client, move |client, message| {
-			let mut brain = Superego::new(config.nickname.clone().unwrap());
-			connection_handler(config.clone(), &client, message, &mut brain);
-			Ok(())
-		});
+        let config = config.clone();
+        let client = reactor.prepare_client_and_connect(&config).unwrap();
+        reactor.register_client_with_handler(client, move |client, message| {
+            let mut brain = Superego::new(config.nickname.clone().unwrap());
+            connection_handler(config.clone(), &client, message, &mut brain);
+            Ok(())
+        });
 
         match reactor.run() {
             Ok(()) => continue,
