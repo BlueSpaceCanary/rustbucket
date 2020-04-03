@@ -1,9 +1,14 @@
 extern crate irc;
 extern crate openssl_probe;
 extern crate ratelimit;
+
 #[macro_use]
 extern crate diesel;
 extern crate dotenv;
+
+#[macro_use]
+extern crate log;
+extern crate env_logger;
 
 mod brain;
 mod models;
@@ -48,7 +53,7 @@ fn main() {
 
         match reactor.run() {
             Ok(()) => continue,
-            Err(irc::error::IrcError::PingTimeout) => continue, // restart
+            Err(irc::error::IrcError::PingTimeout) =>  error! {"Ping timeout"}, // restart
             Err(e) => panic!("{:?}", e),
         }
     }
@@ -62,7 +67,6 @@ fn connection_handler(
 ) {
     // And here we can do whatever we want with the messages.
     if let Command::PRIVMSG(ref target, ref msg) = message.command {
-        println!("{}", msg);
         if let Some(resp) = brain.respond(msg) {
             client
                 .send_privmsg(message.response_target().unwrap_or(target), resp)
