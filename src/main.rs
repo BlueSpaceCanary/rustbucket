@@ -57,7 +57,7 @@ fn main() {
     loop {
         match reactor.run() {
             Ok(()) => continue,
-            Err(irc::error::IrcError::PingTimeout) => error!{"Ping timeout"},
+            Err(irc::error::IrcError::PingTimeout) => error! {"Ping timeout"},
             Err(e) => panic!("{:?}", e),
         }
     }
