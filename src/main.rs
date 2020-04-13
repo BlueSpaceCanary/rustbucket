@@ -45,7 +45,7 @@ fn main() {
     loop {
         let config = config.clone();
         let client = reactor.prepare_client_and_connect(&config).unwrap();
-		client.identify().unwrap();
+        client.identify().unwrap();
         reactor.register_client_with_handler(client, move |client, message| {
             let mut brain = Superego::new(config.nickname.clone().unwrap());
             connection_handler(config.clone(), &client, message, &mut brain);
