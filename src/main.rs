@@ -44,10 +44,12 @@ fn main() {
     let mut reactor = IrcReactor::new().unwrap();
     loop {
         let config = config.clone();
+        let nick = config.nickname.clone().unwrap();
+        let nick1 = nick.clone();
         let client = reactor.prepare_client_and_connect(&config).unwrap();
         client.identify().unwrap();
         reactor.register_client_with_handler(client, move |client, message| {
-            let mut brain = Superego::new(config.nickname.clone().unwrap());
+            let mut brain = Superego::new(nick.clone());
             connection_handler(config.clone(), &client, message, &mut brain);
             Ok(())
         });
@@ -55,7 +57,7 @@ fn main() {
         match reactor.run() {
             Ok(()) => continue,
             Err(irc::error::IrcError::PingTimeout) => error! {"Ping timeout"}, // restart
-            Err(e) => panic!("{:?}", e),
+            Err(e) => panic!("{:?} crashed: {:?}", nick1, e),
         }
     }
 }
