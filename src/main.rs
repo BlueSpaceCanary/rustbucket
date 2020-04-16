@@ -20,6 +20,8 @@ use std::env;
 use std::sync::{Arc, Mutex};
 
 fn main() {
+    env_logger::init();
+
     // Needed to make sure openssl works in alpine :/
     openssl_probe::init_ssl_cert_env_vars();
 
@@ -56,7 +58,7 @@ fn main() {
 
         match reactor.run() {
             Ok(()) => continue,
-            Err(irc::error::IrcError::PingTimeout) => error! {"Ping timeout"}, // restart
+            Err(irc::error::IrcError::PingTimeout) => error!("Ping timeout"), // restart
             Err(e) => panic!("{:?} crashed: {:?}", nick1, e),
         }
     }
