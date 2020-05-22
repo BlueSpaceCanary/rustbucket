@@ -1,6 +1,8 @@
+extern crate failure;
 extern crate irc;
 extern crate openssl_probe;
 extern crate ratelimit;
+extern crate tokio;
 
 #[macro_use]
 extern crate diesel;
@@ -14,68 +16,64 @@ mod brain;
 mod models;
 mod schema;
 
+use brain::IdMemory;
 use brain::Superego;
+use futures::*;
 use irc::client::prelude::*;
 use std::env;
-use std::sync::{Arc, Mutex};
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<(), failure::Error> {
     env_logger::init();
 
     // Needed to make sure openssl works in alpine :/
     openssl_probe::init_ssl_cert_env_vars();
 
     let args: Vec<String> = env::args().collect();
-
     let config = if let Some(config_path) = args.get(1) {
-        match Config::load(config_path) {
-            Ok(conf) => conf,
-            Err(e) => panic!("error parsing config: {:?}", e),
-        }
+        Config::load(config_path)?
     } else {
         Config {
             nickname: Some("awoo".to_owned()),
             server: Some("irc.qrimes.club".to_owned()),
-            channels: Some(vec!["#funposting".to_owned()]),
-            use_ssl: Some(true),
+            channels: vec!["#funposting".to_owned()],
+            use_tls: Some(true),
             port: Some(6697),
             ..Config::default()
         }
     };
 
-    let mut reactor = IrcReactor::new().unwrap();
     loop {
-        let config = config.clone();
-        let nick = config.nickname.clone().unwrap();
-        let nick1 = nick.clone();
-        let client = reactor.prepare_client_and_connect(&config).unwrap();
-        client.identify().unwrap();
-        reactor.register_client_with_handler(client, move |client, message| {
-            let mut brain = Superego::new(nick.clone());
-            connection_handler(config.clone(), &client, message, &mut brain);
-            Ok(())
-        });
+        // Clone config so we can restart on error
+        let mut client = Client::from_config(config.clone()).await?;
+        let mut stream = client.stream()?;
+        client.identify()?;
 
-        match reactor.run() {
-            Ok(()) => continue,
-            Err(irc::error::IrcError::PingTimeout) => error!("Ping timeout"), // restart
-            Err(e) => panic!("{:?} crashed: {:?}", nick1, e),
-        }
-    }
-}
+        let mut brain = Superego::<IdMemory>::new(client.current_nickname().to_string());
 
-fn connection_handler(
-    _config: Config,
-    client: &IrcClient,
-    message: irc::proto::Message,
-    brain: &mut Superego,
-) {
-    // And here we can do whatever we want with the messages.
-    if let Command::PRIVMSG(ref target, ref msg) = message.command {
-        if let Some(resp) = brain.respond(msg) {
-            client
-                .send_privmsg(message.response_target().unwrap_or(target), resp)
-                .unwrap();
+        // TODO(bluespacecanary) this sucks ass, implement
+        // while_match! and become a real rust programmer
+        loop {
+            match stream.next().await.transpose() {
+                Ok(Some(msg)) => {
+                    if let Command::PRIVMSG(channel, msg) = msg.command {
+                        if let Some(resp) = brain.respond(&msg.to_string()) {
+                            match client.send_privmsg(&channel, resp.clone()) {
+                                Ok(()) => info!("responded with {}", resp), // keep matching messages
+                                Err(e) => {
+                                    error!("Died while sending message: {}", e);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                Ok(None) => warn!("Got an empty message"),
+                Err(e) => {
+                    error!("Message stream died: {}; attempting to reconnect", e);
+                    break;
+                }
+            }
         }
     }
 }
