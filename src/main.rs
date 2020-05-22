@@ -4,6 +4,9 @@ extern crate openssl_probe;
 extern crate ratelimit;
 extern crate tokio;
 
+extern crate metrics;
+extern crate metrics_runtime;
+
 #[macro_use]
 extern crate diesel;
 extern crate dotenv;
@@ -20,11 +23,32 @@ use brain::IdMemory;
 use brain::Superego;
 use futures::*;
 use irc::client::prelude::*;
-use std::env;
 
+use log::Level;
+use metrics::counter;
+use metrics_runtime::{exporters::LogExporter, observers::YamlBuilder, Receiver};
+use std::{env, time::Duration};
+		
 #[tokio::main]
 async fn main() -> Result<(), failure::Error> {
+	// init logging
     env_logger::init();
+
+    // metrics
+    let receiver = Receiver::builder()
+        .build()
+        .expect("failed to create receiver");
+
+	 // export metrics
+    let exporter = LogExporter::new(
+        receiver.controller(),
+        YamlBuilder::new(),
+        Level::Info,
+        Duration::from_secs(5),
+    );
+
+	tokio::spawn(exporter.async_run());
+    receiver.install();
 
     // Needed to make sure openssl works in alpine :/
     openssl_probe::init_ssl_cert_env_vars();
@@ -59,8 +83,9 @@ async fn main() -> Result<(), failure::Error> {
                     if let Command::PRIVMSG(channel, msg) = msg.command {
                         if let Some(resp) = brain.respond(&msg.to_string()) {
                             match client.send_privmsg(&channel, resp.clone()) {
-                                Ok(()) => info!("responded with {}", resp), // keep matching messages
+                                Ok(()) => counter!("responses_sent", 1),
                                 Err(e) => {
+									counter!("failed_response_sends", 1);
                                     error!("Died while sending message: {}", e);
                                     break;
                                 }
@@ -68,12 +93,17 @@ async fn main() -> Result<(), failure::Error> {
                         }
                     }
                 }
-                Ok(None) => warn!("Got an empty message"),
+                Ok(None) => {
+					counter!("empty_messages", 1);
+				},
                 Err(e) => {
+					counter!("stream_disconnects", 1);
                     error!("Message stream died: {}; attempting to reconnect", e);
                     break;
                 }
             }
         }
+
+		counter!("restarts", 1);
     }
 }
