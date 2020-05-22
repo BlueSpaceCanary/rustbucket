@@ -15,6 +15,8 @@ use rand_xorshift::XorShiftRng;
 use responder::Responder;
 use responder::Responders;
 
+pub use hippocampus::IdMemory;
+
 // Wraps the Brain, handles the stateful external world
 pub struct Superego<T: Hippocampus = hippocampus::IdMemory> {
     ego: Brain,
