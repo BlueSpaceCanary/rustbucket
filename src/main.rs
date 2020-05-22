@@ -28,10 +28,10 @@ use log::Level;
 use metrics::counter;
 use metrics_runtime::{exporters::LogExporter, observers::YamlBuilder, Receiver};
 use std::{env, time::Duration};
-		
+
 #[tokio::main]
 async fn main() -> Result<(), failure::Error> {
-	// init logging
+    // init logging
     env_logger::init();
 
     // metrics
@@ -39,7 +39,7 @@ async fn main() -> Result<(), failure::Error> {
         .build()
         .expect("failed to create receiver");
 
-	 // export metrics
+    // export metrics
     let exporter = LogExporter::new(
         receiver.controller(),
         YamlBuilder::new(),
@@ -47,7 +47,7 @@ async fn main() -> Result<(), failure::Error> {
         Duration::from_secs(5),
     );
 
-	tokio::spawn(exporter.async_run());
+    tokio::spawn(exporter.async_run());
     receiver.install();
 
     // Needed to make sure openssl works in alpine :/
@@ -85,7 +85,7 @@ async fn main() -> Result<(), failure::Error> {
                             match client.send_privmsg(&channel, resp.clone()) {
                                 Ok(()) => counter!("responses_sent", 1),
                                 Err(e) => {
-									counter!("failed_response_sends", 1);
+                                    counter!("failed_response_sends", 1);
                                     error!("Died while sending message: {}", e);
                                     break;
                                 }
@@ -94,16 +94,16 @@ async fn main() -> Result<(), failure::Error> {
                     }
                 }
                 Ok(None) => {
-					counter!("empty_messages", 1);
-				},
+                    counter!("empty_messages", 1);
+                }
                 Err(e) => {
-					counter!("stream_disconnects", 1);
+                    counter!("stream_disconnects", 1);
                     error!("Message stream died: {}; attempting to reconnect", e);
                     break;
                 }
             }
         }
 
-		counter!("restarts", 1);
+        counter!("restarts", 1);
     }
 }
