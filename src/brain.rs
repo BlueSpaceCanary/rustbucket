@@ -185,7 +185,7 @@ mod tests {
         let mut brain = Brain::new("sidra".to_owned());
 
         // Set arbitrarily to make the test work
-        brain.set_rng_seed(0);
+        brain.set_rng_seed(6969);
 
         assert!(!brain
             .create_factoid(&"sidra: foo is bar".to_string())
@@ -197,7 +197,7 @@ mod tests {
         assert_eq!(brain.respond("foo"), Some("bar".to_string()));
 
         // Set arbitrarily to make the test work
-        brain.set_rng_seed(6969);
+        brain.set_rng_seed(69);
 
         assert_eq!(brain.respond("foo"), Some("zip".to_string()));
     }
