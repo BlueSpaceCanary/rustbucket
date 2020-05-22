@@ -76,10 +76,4 @@ async fn main() -> Result<(), failure::Error> {
             }
         }
     }
-
-    //  match reactor.run() {
-    //     Ok(()) => continue,
-    //     Err(irc::error::IrcError::PingTimeout) => error!("Ping timeout"), // restart
-    //     Err(e) => panic!("{:?} crashed: {:?}", nick1, e),
-    // }
 }
