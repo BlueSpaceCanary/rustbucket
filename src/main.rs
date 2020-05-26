@@ -63,7 +63,7 @@ async fn main() -> Result<(), failure::Error> {
             channels: vec!["#funposting".to_owned()],
             use_tls: Some(true),
             port: Some(6697),
-			ping_timeout: Some(180),
+            ping_timeout: Some(180),
             ..Config::default()
         }
     };
