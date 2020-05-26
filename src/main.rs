@@ -44,7 +44,7 @@ async fn main() -> Result<(), failure::Error> {
         receiver.controller(),
         YamlBuilder::new(),
         Level::Info,
-        Duration::from_secs(5),
+        Duration::from_secs(30),
     );
 
     tokio::spawn(exporter.async_run());
@@ -63,6 +63,7 @@ async fn main() -> Result<(), failure::Error> {
             channels: vec!["#funposting".to_owned()],
             use_tls: Some(true),
             port: Some(6697),
+			ping_timeout: Some(180),
             ..Config::default()
         }
     };
