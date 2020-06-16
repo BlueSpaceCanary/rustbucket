@@ -57,15 +57,7 @@ async fn main() -> Result<(), failure::Error> {
     let config = if let Some(config_path) = args.get(1) {
         Config::load(config_path)?
     } else {
-        Config {
-            nickname: Some("awoo".to_owned()),
-            server: Some("irc.qrimes.club".to_owned()),
-            channels: vec!["#funposting".to_owned()],
-            use_tls: Some(true),
-            port: Some(6697),
-            ping_timeout: Some(180),
-            ..Config::default()
-        }
+        panic!("No config provided")
     };
 
     loop {
