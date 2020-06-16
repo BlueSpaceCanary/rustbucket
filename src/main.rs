@@ -57,7 +57,7 @@ async fn main() -> Result<(), failure::Error> {
     let config = if let Some(config_path) = args.get(1) {
         Config::load(config_path)?
     } else {
-		panic!("No config provided")
+        panic!("No config provided")
     };
 
     loop {
