@@ -1,12 +1,3 @@
 /target
 **/*.rs.bk
-*~owners = [ "bsc" ]
-
-nickname = "awoo_test"
-username = "barkbark"
-realname = "MEOW"
-
-server = "irc.qrimes.club"
-channels = [ "#funposting" ]
-use_ssl = true
-port = 6697
+awoo.toml
