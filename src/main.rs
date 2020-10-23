@@ -1,8 +1,10 @@
 extern crate failure;
 extern crate irc;
 extern crate openssl_probe;
-extern crate ratelimit;
 extern crate tokio;
+
+extern crate governor;
+extern crate nonzero_ext;
 
 extern crate metrics;
 extern crate metrics_runtime;
@@ -28,6 +30,9 @@ use log::Level;
 use metrics::counter;
 use metrics_runtime::{exporters::LogExporter, observers::YamlBuilder, Receiver};
 use std::{env, time::Duration};
+
+use governor::{Quota, RateLimiter};
+use nonzero_ext::*;
 
 #[tokio::main]
 async fn main() -> Result<(), failure::Error> {
@@ -66,6 +71,7 @@ async fn main() -> Result<(), failure::Error> {
         let mut stream = client.stream()?;
         client.identify()?;
 
+        let lim = RateLimiter::keyed(Quota::per_minute(nonzero!(6u32)));
         let mut brain = Superego::<IdMemory>::new(client.current_nickname().to_string());
 
         // TODO(bluespacecanary) this sucks ass, implement
@@ -73,14 +79,19 @@ async fn main() -> Result<(), failure::Error> {
         loop {
             match stream.next().await.transpose() {
                 Ok(Some(msg)) => {
-                    if let Command::PRIVMSG(channel, msg) = msg.command {
-                        if let Some(resp) = brain.respond(&msg.to_string()) {
-                            match client.send_privmsg(&channel, resp.clone()) {
-                                Ok(()) => counter!("responses_sent", 1),
-                                Err(e) => {
-                                    counter!("failed_response_sends", 1);
-                                    error!("Died while sending message: {}", e);
-                                    break;
+                    if let Some(lim_nick) = msg.source_nickname() {
+                        let lim_nick = lim_nick.to_owned();
+                        if let Command::PRIVMSG(channel, msg) = msg.command {
+                            if let Ok(()) = lim.check_key(&lim_nick) {
+                                if let Some(resp) = brain.respond(&msg.to_string()) {
+                                    match client.send_privmsg(&channel, resp.clone()) {
+                                        Ok(()) => counter!("responses_sent", 1),
+                                        Err(e) => {
+                                            counter!("failed_response_sends", 1);
+                                            error!("Died while sending message: {}", e);
+                                            break;
+                                        }
+                                    }
                                 }
                             }
                         }
