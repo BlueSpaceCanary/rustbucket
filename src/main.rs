@@ -78,25 +78,22 @@ async fn main() -> Result<(), failure::Error> {
         // while_match! and become a real rust programmer
         loop {
             match stream.next().await.transpose() {
-                Ok(Some(msg)) => {
-                    if let Some(lim_nick) = msg.source_nickname() {
-                        let lim_nick = lim_nick.to_owned();
-                        if let Command::PRIVMSG(channel, msg) = msg.command {
-                            if let Ok(()) = lim.check_key(&lim_nick) {
-                                if let Some(resp) = brain.respond(&msg.to_string()) {
-                                    match client.send_privmsg(&channel, resp.clone()) {
-                                        Ok(()) => counter!("responses_sent", 1),
-                                        Err(e) => {
-                                            counter!("failed_response_sends", 1);
-                                            error!("Died while sending message: {}", e);
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
+                Ok(Some(msg)) => msg.source_nickname().and_then(|lim_nick| {
+                    let lim_nick = lim_nick.to_owned();
+                    if let Command::PRIVMSG(channel, msg) = msg.command {
+                        if let Err(e) = lim
+                            .check_key(&lim_nick)
+                            .and_then(|x| brain.respond(&x.to_string()))
+                            .and_then(|x| client.send_privmsg(&channel, x.clone()))
+                            .and_then(|x| counter!("responses_sent", 1))
+                        {
+                            counter!("failed_response_sends", 1);
+                            error!("Died while sending message: {}", e);
+                            break;
                         }
                     }
-                }
+                }),
+
                 Ok(None) => {
                     counter!("empty_messages", 1);
                 }
@@ -106,8 +103,8 @@ async fn main() -> Result<(), failure::Error> {
                     break;
                 }
             }
-        }
 
-        counter!("restarts", 1);
+            counter!("restarts", 1);
+        }
     }
 }
