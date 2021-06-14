@@ -43,7 +43,7 @@ async fn main() -> Result<(), failure::Error> {
     let receiver = Receiver::builder()
         .build()
         .expect("failed to create receiver")
-		.install();
+        .install();
 
     // export metrics
     let exporter = LogExporter::new(
