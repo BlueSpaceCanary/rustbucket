@@ -42,8 +42,9 @@ async fn main() -> Result<(), failure::Error> {
     // metrics
     let receiver = Receiver::builder()
         .build()
-        .expect("failed to create receiver")
-        .install();
+        .expect("failed to create receiver");
+
+    let mut sink = receiver.sink();
 
     // export metrics
     let exporter = LogExporter::new(
@@ -54,7 +55,6 @@ async fn main() -> Result<(), failure::Error> {
     );
 
     tokio::spawn(exporter.async_run());
-    receiver.install();
 
     // Needed to make sure openssl works in alpine :/
     openssl_probe::init_ssl_cert_env_vars();
@@ -86,9 +86,9 @@ async fn main() -> Result<(), failure::Error> {
                             if let Ok(()) = lim.check_key(&lim_nick) {
                                 if let Some(resp) = brain.respond(&msg.to_string()) {
                                     match client.send_privmsg(&channel, resp.clone()) {
-                                        Ok(()) => counter!("responses_sent", 1),
+                                        Ok(()) => sink.increment_counter("responses_sent", 1),
                                         Err(e) => {
-                                            counter!("failed_response_sends", 1);
+                                            sink.increment_counter("failed_response_sends", 1);
                                             error!("Died while sending message: {}", e);
                                             break;
                                         }
@@ -99,16 +99,16 @@ async fn main() -> Result<(), failure::Error> {
                     }
                 }
                 Ok(None) => {
-                    counter!("empty_messages", 1);
+                    sink.increment_counter("empty_messages", 1);
                 }
                 Err(e) => {
-                    counter!("stream_disconnects", 1);
+                    sink.increment_counter("stream_disconnects", 1);
                     error!("Message stream died: {}; attempting to reconnect", e);
                     break;
                 }
             }
         }
 
-        counter!("restarts", 1);
+        sink.increment_counter("restarts", 1);
     }
 }
