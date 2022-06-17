@@ -6,9 +6,6 @@ extern crate tokio;
 extern crate governor;
 extern crate nonzero_ext;
 
-extern crate metrics;
-extern crate metrics_runtime;
-
 #[macro_use]
 extern crate diesel;
 extern crate dotenv;
@@ -27,8 +24,6 @@ use futures::*;
 use irc::client::prelude::*;
 
 use log::Level;
-use metrics::counter;
-use metrics_runtime::{exporters::LogExporter, observers::YamlBuilder, Receiver};
 use std::{env, time::Duration};
 
 use governor::{Quota, RateLimiter};
@@ -45,16 +40,6 @@ async fn main() -> anyhow::Result<()> {
         .expect("failed to create receiver");
 
     let mut sink = receiver.sink();
-
-    // export metrics
-    let exporter = LogExporter::new(
-        receiver.controller(),
-        YamlBuilder::new(),
-        Level::Info,
-        Duration::from_secs(30),
-    );
-
-    tokio::spawn(exporter.async_run());
 
     // Needed to make sure openssl works in alpine :/
     openssl_probe::init_ssl_cert_env_vars();
@@ -85,13 +70,9 @@ async fn main() -> anyhow::Result<()> {
                         if let Command::PRIVMSG(channel, msg) = msg.command {
                             if let Ok(()) = lim.check_key(&lim_nick) {
                                 if let Some(resp) = brain.respond(&msg.to_string()) {
-                                    match client.send_privmsg(&channel, resp.clone()) {
-                                        Ok(()) => sink.increment_counter("responses_sent", 1),
-                                        Err(e) => {
-                                            sink.increment_counter("failed_response_sends", 1);
-                                            error!("Died while sending message: {}", e);
-                                            break;
-                                        }
+                                    if let Err(e) = match client.send_privmsg(&channel, resp.clone()) {
+                                        error!("Died while sending message: {}", e);
+                                        break;
                                     }
                                 }
                             }
@@ -99,16 +80,15 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
                 Ok(None) => {
-                    sink.increment_counter("empty_messages", 1);
+                    info!("Empty message")
                 }
                 Err(e) => {
-                    sink.increment_counter("stream_disconnects", 1);
                     error!("Message stream died: {}; attempting to reconnect", e);
                     break;
                 }
             }
         }
 
-        sink.increment_counter("restarts", 1);
+		warning!("Restarting responder loop")
     }
 }
