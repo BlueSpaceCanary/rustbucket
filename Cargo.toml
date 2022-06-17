@@ -15,7 +15,7 @@ log = "*"
 rand = "*"
 rand_core = "*"
 rand_xorshift = "*"
-governor = "0.3"
+governor = "0.4"
 nonzero_ext = "*"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 # certs &c
