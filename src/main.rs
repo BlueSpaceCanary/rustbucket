@@ -23,7 +23,7 @@ use brain::Superego;
 use futures::*;
 use irc::client::prelude::*;
 
-use std::{env};
+use std::env;
 
 use governor::{Quota, RateLimiter};
 use nonzero_ext::*;
@@ -81,6 +81,6 @@ async fn main() -> anyhow::Result<()> {
             }
         }
 
-		warn!("Restarting responder loop")
+        warn!("Restarting responder loop")
     }
 }
