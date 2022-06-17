@@ -1317,14 +1317,14 @@ dependencies = [
  "rand",
  "rand_core",
  "rand_xorshift",
- "tokio 1.8.4",
+ "tokio 1.19.2",
 ]
 
 [[package]]
 name = "rustc-demangle"
-version = "0.1.16"
+version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c691c0e608126e00913e33f0ccf3727d5fc84573623b8d65b2df340b5201783"
+checksum = "7ef03e0a2b150c7a90d01faf6254c9c48a41e95fb2a8c2ac1c6f0d2b9aefc342"
 
 [[package]]
 name = "rustc_version"
@@ -1586,12 +1586,12 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.8.4"
+version = "1.19.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50dae83881bc9b0403dd5b44ea9deed3e939856cc8722d5be37f0d6e5c6d53dd"
+checksum = "c51a52ed6686dd62c320f9b89299e9dfb46f730c7a48e635c19f21d116cb1439"
 dependencies = [
- "autocfg",
  "num_cpus",
+ "once_cell",
  "pin-project-lite 0.2.9",
  "tokio-macros 1.8.0",
 ]
