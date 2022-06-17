@@ -1,4 +1,4 @@
-extern crate failure;
+extern crate anyhow;
 extern crate irc;
 extern crate openssl_probe;
 extern crate tokio;
@@ -35,7 +35,7 @@ use governor::{Quota, RateLimiter};
 use nonzero_ext::*;
 
 #[tokio::main]
-async fn main() -> Result<(), failure::Error> {
+async fn main() -> anyhow::Result<()> {
     // init logging
     env_logger::init();
 
