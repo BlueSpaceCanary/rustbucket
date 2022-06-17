@@ -23,8 +23,7 @@ use brain::Superego;
 use futures::*;
 use irc::client::prelude::*;
 
-use log::Level;
-use std::{env, time::Duration};
+use std::{env};
 
 use governor::{Quota, RateLimiter};
 use nonzero_ext::*;
@@ -33,13 +32,6 @@ use nonzero_ext::*;
 async fn main() -> anyhow::Result<()> {
     // init logging
     env_logger::init();
-
-    // metrics
-    let receiver = Receiver::builder()
-        .build()
-        .expect("failed to create receiver");
-
-    let mut sink = receiver.sink();
 
     // Needed to make sure openssl works in alpine :/
     openssl_probe::init_ssl_cert_env_vars();
@@ -70,7 +62,7 @@ async fn main() -> anyhow::Result<()> {
                         if let Command::PRIVMSG(channel, msg) = msg.command {
                             if let Ok(()) = lim.check_key(&lim_nick) {
                                 if let Some(resp) = brain.respond(&msg.to_string()) {
-                                    if let Err(e) = match client.send_privmsg(&channel, resp.clone()) {
+                                    if let Err(e) = client.send_privmsg(&channel, resp.clone()) {
                                         error!("Died while sending message: {}", e);
                                         break;
                                     }
@@ -89,6 +81,6 @@ async fn main() -> anyhow::Result<()> {
             }
         }
 
-		warning!("Restarting responder loop")
+		warn!("Restarting responder loop")
     }
 }
